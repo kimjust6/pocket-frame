@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en" data-theme="yellowdark" x-data="shell()">
+    <head>
+        <%- include('head.ejs') %> <%- include('theme-init.ejs') %> <%-
+        include('alpine-setup.ejs') %> <%- include('shell-init.ejs') %> <%-
+        include('custom-styles.ejs') %>
+    </head>
+
+    <body class="min-h-screen bg-base-100 text-base-content">
+        <main class="h-full w-full"><%- slot %></main>
+        <%- include('link-fixer.ejs') %>
+    </body>
+</html>

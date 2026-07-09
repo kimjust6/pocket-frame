@@ -1,0 +1,59 @@
+{
+  "name": "bookmark manager",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "concurrently \"tailwindcss -i ./pb_hooks/pages/app.tailwind.css -o ./pb_hooks/pages/app.css --watch\" \"pocketbase serve --dir=pb_data --dev\"",
+    "wsl": "wsl bash -c \"set -a && source .env && set +a && npm run dev\"",
+    "css": "tailwindcss -i ./pb_hooks/pages/app.tailwind.css -o ./pb_hooks/pages/app.css --watch",
+    "bundle:hooks": "esbuild ./node_modules/pocketpages/dist/index.js --bundle --format=cjs --platform=node --main-fields=main,module --target=es2020 --outfile=./pb_hooks/lib/pocketpages.bundle.pb.js && esbuild ./node_modules/pocketpages-plugin-ejs/dist/index.js --bundle --format=cjs --platform=node --main-fields=main,module --target=es2020 --outfile=./pb_hooks/lib/pocketpages-plugin-ejs.bundle.pb.js && esbuild ./node_modules/pocketpages-plugin-js-sdk/dist/index.js --bundle --format=cjs --platform=node --main-fields=main,module --target=es2020 --outfile=./pb_hooks/lib/pocketpages-plugin-js-sdk.bundle.pb.js",
+    "push": "node scripts/push.mjs",
+    "login": "phio login",
+    "update": "pocketbase update",
+    "typegen": "node scripts/typegen.mjs",
+    "postinstall": "patch-package",
+    "start": "phio dev blinks"
+  },
+  "description": "Immich Frame Site Using Pocketpages.",
+  "author": {
+    "name": "Justin Kim",
+    "github": "kimjust6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kimjust6/pocket-frame.git"
+  },
+  "keywords": [
+    "pocketpages",
+    "pocketbase",
+    "frame",
+    "bookmarks",
+    "daisyui",
+    "tailwindcss"
+  ],
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
+    "concurrently": "^9.2.1",
+    "daisyui": "^4.12.23",
+    "dotenv": "^17.2.3",
+    "esbuild": "^0.25.10",
+    "patch-package": "^8.0.1",
+    "phio": "0.4.0",
+    "prettier": "^3.6.2",
+    "prettier-plugin-ejs": "^1.0.3",
+    "prettier-plugin-tailwindcss": "^0.6.14",
+    "tailwindcss": "^3.4.17"
+  },
+  "dependencies": {
+    "baseline-browser-mapping": "^2.9.17",
+    "caniuse-lite": "^1.0.30001765",
+    "pocketbase": "^0.26.5",
+    "pocketpages": "^0.22.3",
+    "pocketpages-plugin-datastar": "^0.2.0",
+    "pocketpages-plugin-js-sdk": "^0.2.0"
+  },
+  "files": [
+    "pb_hooks",
+    "*.md"
+  ]
+}
