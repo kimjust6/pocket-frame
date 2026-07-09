@@ -7,6 +7,8 @@
     @touchstart="onTouchStart($event); keepControlsAlive()"
     @touchmove="onTouchMove($event)"
     @touchend="onTouchEnd($event)"
+    @keydown.window.left="prevImage(); keepControlsAlive()"
+    @keydown.window.right="nextImage(); keepControlsAlive()"
 >
     <!-- Slideshow Track Wrapper -->
     <template x-if="images.length > 0">
@@ -17,38 +19,37 @@
         >
             <template x-for="(img, idx) in images" :key="idx">
                 <div class="w-screen h-screen flex-shrink-0 relative overflow-hidden bg-black flex items-center justify-center">
-                    <template x-if="Math.abs(currentIndex - idx) <= 1 || (currentIndex === 0 && idx === images.length - 1) || (currentIndex === images.length - 1 && idx === 0)">
-                        <div class="absolute inset-0 w-full h-full flex items-center justify-center">
-                            <!-- Blurred background -->
+                    <div class="absolute inset-0 w-full h-full flex items-center justify-center">
+                        <!-- Blurred background -->
+                        <img
+                            :src="img.thumbnailUrl"
+                            alt=""
+                            class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
+                            loading="lazy"
+                        />
+                        <!-- Foreground Image -->
+                        <template x-if="img.type === 'IMAGE'">
                             <img
-                                :src="img.thumbnailUrl"
-                                alt=""
-                                class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
+                                :src="img.url"
+                                alt="Immich slideshow image"
+                                class="relative h-full w-full object-contain z-10"
+                                loading="lazy"
                             />
-                            <!-- Foreground Image -->
-                            <template x-if="img.type === 'IMAGE'">
-                                <img
-                                    :src="img.url"
-                                    alt="Immich slideshow image"
-                                    class="relative h-full w-full object-contain z-10"
-                                />
-                            </template>
-                            <!-- Foreground Video -->
-                            <template x-if="img.type === 'VIDEO'">
-                                <template x-if="currentIndex === idx">
-                                    <video
-                                        :src="img.url"
-                                        autoplay
-                                        muted
-                                        controls
-                                        playsinline
-                                        @ended="onVideoEnded($event)"
-                                        class="relative h-full w-full object-contain z-10 pointer-events-auto"
-                                    ></video>
-                                </template>
-                            </template>
-                        </div>
-                    </template>
+                        </template>
+                        <!-- Foreground Video -->
+                        <template x-if="img.type === 'VIDEO'">
+                            <video
+                                :src="img.url"
+                                :id="`video-${idx}`"
+                                preload="metadata"
+                                muted
+                                controls
+                                playsinline
+                                @ended="onVideoEnded($event)"
+                                class="relative h-full w-full object-contain z-10 pointer-events-auto"
+                            ></video>
+                        </template>
+                    </div>
                 </div>
             </template>
         </div>
@@ -72,7 +73,7 @@
     >
         <a href="/" class="pointer-events-auto cursor-pointer block hover:opacity-90 select-none">
             <h1 class="text-xl font-bold tracking-tight text-white drop-shadow-md">
-                Immich Slideshow
+                <%= (locals.data && locals.data.albumName) ? locals.data.albumName : "Pocket Frame" %>
             </h1>
             <p class="text-xs opacity-75 drop-shadow-sm mt-0.5" x-text="statusText"></p>
         </a>
@@ -318,6 +319,20 @@
                     clearInterval(this.slideTimerId)
                     this.slideTimerId = null
                 }
+
+                // Control video playback programmatically based on active index
+                this.$nextTick(() => {
+                    const videoElements = document.querySelectorAll('video')
+                    videoElements.forEach((video) => {
+                        const idx = parseInt(video.id.replace('video-', ''))
+                        if (idx === this.currentIndex) {
+                            video.currentTime = 0
+                            video.play().catch(() => {})
+                        } else {
+                            video.pause()
+                        }
+                    })
+                })
 
                 if (this.images.length <= 1) return
 

@@ -77,6 +77,7 @@ module.exports = function (context) {
         // Fetch Immich share payload on backend to bypass CORS
         let images = [];
         let statusText = 'Loading slideshow...';
+        let albumName = '';
         const shareUrl = settings.search_engine || '';
 
         if (shareUrl) {
@@ -89,6 +90,9 @@ module.exports = function (context) {
 
                 if (payload) {
                     log("Payload fetched. Keys: " + Object.keys(payload).join(", "));
+                    if (payload.album && payload.album.albumName) {
+                        albumName = payload.album.albumName;
+                    }
                     // 1. Try to load direct assets if it's an individual share link
                     const directAssetIds = [];
                     collectAssetIds(payload.assets || [], directAssetIds);
@@ -259,6 +263,7 @@ module.exports = function (context) {
             settings,
             images,
             statusText,
+            albumName,
             applications: [],
             categories: [],
             bookmarksByCategory: []
