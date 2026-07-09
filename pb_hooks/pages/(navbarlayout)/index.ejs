@@ -41,9 +41,12 @@
                             <video
                                 :src="img.url"
                                 :id="`video-${idx}`"
-                                preload="metadata"
-                                controls
+                                preload="auto"
+                                muted
+                                autoplay
                                 playsinline
+                                controls
+                                @canplay="if (idx === currentIndex) { const v = $event.target; v.muted = true; v.play().then(() => { v.muted = false }).catch(() => { v.muted = false }) }"
                                 @ended="onVideoEnded($event)"
                                 class="relative h-full w-full object-contain z-10 pointer-events-auto"
                             ></video>
@@ -320,7 +323,7 @@
                 }
 
                 // Control video playback programmatically based on active index
-                this.$nextTick(() => {
+                const tryPlayVideo = () => {
                     const videoElements = document.querySelectorAll('video')
                     videoElements.forEach((video) => {
                         const idx = parseInt(video.id.replace('video-', ''))
@@ -331,6 +334,11 @@
                             video.pause()
                         }
                     })
+                }
+                this.$nextTick(() => {
+                    tryPlayVideo()
+                    // Retry after a short delay in case x-if hasn't rendered the video yet
+                    setTimeout(tryPlayVideo, 150)
                 })
 
                 if (this.images.length <= 1) return
