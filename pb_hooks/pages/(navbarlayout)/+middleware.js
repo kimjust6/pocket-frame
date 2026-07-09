@@ -54,7 +54,7 @@ module.exports = function (context) {
             // Basic metadata
             {
                 name: 'title',
-                content: 'Flame Startpage',
+                content: 'Pocket Frame',
             },
             {
                 name: 'description',
@@ -65,7 +65,7 @@ module.exports = function (context) {
             // Open Graph metadata
             {
                 name: 'og:title',
-                content: 'Flame Startpage',
+                content: 'Pocket Frame',
             },
             { name: 'og:type', content: 'website' },
             { name: 'og:url', content: BASE_URL },
@@ -73,14 +73,14 @@ module.exports = function (context) {
                 name: 'og:image',
                 content: `${BASE_URL}/og-image.webp`,
             },
-            { name: 'og:image:alt', content: 'Flame Startpage' },
+            { name: 'og:image:alt', content: 'Pocket Frame' },
             { name: 'og:image:width', content: '637' },
             { name: 'og:image:height', content: '425' },
             {
                 name: 'og:description',
                 content: "Your self-hosted startpage and bookmarks manager.",
             },
-            { name: 'og:site_name', content: 'Flame Startpage' },
+            { name: 'og:site_name', content: 'Pocket Frame' },
             { name: 'og:locale', content: 'en_US' },
 
             // Twitter Card metadata (optional, but helpful)
@@ -88,7 +88,7 @@ module.exports = function (context) {
             { name: 'twitter:site', content: '@MatchaLatteTea' },
             {
                 name: 'twitter:title',
-                content: 'Flame Startpage',
+                content: 'Pocket Frame',
             },
             {
                 name: 'twitter:description',

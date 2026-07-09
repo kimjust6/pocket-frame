@@ -1,5 +1,5 @@
 <!-- Root route for PocketPages -->
-<div x-data="flameDashboard()" class="w-full max-w-6xl mx-auto px-4 py-8 md:py-16 min-h-screen flex flex-col justify-start">
+<div x-data="frameDashboard()" class="w-full max-w-6xl mx-auto px-4 py-8 md:py-16 min-h-screen flex flex-col justify-start">
     
     <!-- Search Bar Section -->
     <div class="w-full max-w-md mx-auto mb-8">
@@ -217,7 +217,7 @@
 
 <!-- Startpage Alpine.js Logic -->
 <script>
-function flameDashboard() {
+function frameDashboard() {
     return {
         searchQuery: '',
         apps: <%- JSON.stringify(data.applications) %>,
