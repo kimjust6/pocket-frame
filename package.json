@@ -1,7 +1,7 @@
 {
-  "name": "bookmark manager",
+  "name": "immich-frame-album",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0",
   "scripts": {
     "dev": "concurrently \"tailwindcss -i ./pb_hooks/pages/app.tailwind.css -o ./pb_hooks/pages/app.css --watch\" \"pocketbase serve --dir=pb_data --dev\"",
     "wsl": "wsl bash -c \"set -a && source .env && set +a && npm run dev\"",

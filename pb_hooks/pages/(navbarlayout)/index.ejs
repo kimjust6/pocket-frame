@@ -4,46 +4,60 @@
     :class="{ 'cursor-none': !showControls }"
     @mousemove="keepControlsAlive()"
     @click="keepControlsAlive()"
-    @touchstart="keepControlsAlive()"
+    @touchstart="onTouchStart($event); keepControlsAlive()"
+    @touchmove="onTouchMove($event)"
+    @touchend="onTouchEnd($event)"
 >
-    <!-- Background Image Layer (Blurred) & Foreground Image Layer -->
-    <div class="absolute inset-0 w-full h-full z-0 overflow-hidden bg-black flex items-center justify-center">
-        <template x-if="images.length > 0">
-            <div class="absolute inset-0 w-full h-full">
-                <!-- Blurred background (uses thumbnailUrl for both) -->
-                <img
-                    :src="images[currentIndex].thumbnailUrl"
-                    alt=""
-                    class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none transition-all duration-700 ease-in-out"
-                />
-                <!-- Foreground Image -->
-                <template x-if="images[currentIndex].type === 'IMAGE'">
-                    <img
-                        :src="images[currentIndex].url"
-                        alt="Immich slideshow image"
-                        class="relative h-full w-full object-contain z-10 transition-all duration-700 ease-in-out"
-                    />
-                </template>
-                <!-- Foreground Video -->
-                <template x-if="images[currentIndex].type === 'VIDEO'">
-                    <video
-                        :src="images[currentIndex].url"
-                        autoplay
-                        muted
-                        controls
-                        playsinline
-                        @ended="onVideoEnded($event)"
-                        class="relative h-full w-full object-contain z-10 pointer-events-auto transition-all duration-700 ease-in-out"
-                    ></video>
-                </template>
-            </div>
-        </template>
-        <template x-if="images.length === 0">
-            <div class="flex h-full items-center justify-center px-6 text-center text-white z-10">
-                <p class="max-w-2xl text-sm opacity-70" x-text="emptyMessage"></p>
-            </div>
-        </template>
-    </div>
+    <!-- Slideshow Track Wrapper -->
+    <template x-if="images.length > 0">
+        <div 
+            class="absolute inset-0 flex"
+            :class="(isSwiping || !shouldAnimate) ? '' : 'transition-transform duration-500 ease-out'"
+            :style="`transform: translateX(calc(-${currentIndex * 100}% + ${swipeOffset}px))`"
+        >
+            <template x-for="(img, idx) in images" :key="idx">
+                <div class="w-screen h-screen flex-shrink-0 relative overflow-hidden bg-black flex items-center justify-center">
+                    <template x-if="Math.abs(currentIndex - idx) <= 1 || (currentIndex === 0 && idx === images.length - 1) || (currentIndex === images.length - 1 && idx === 0)">
+                        <div class="absolute inset-0 w-full h-full flex items-center justify-center">
+                            <!-- Blurred background -->
+                            <img
+                                :src="img.thumbnailUrl"
+                                alt=""
+                                class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
+                            />
+                            <!-- Foreground Image -->
+                            <template x-if="img.type === 'IMAGE'">
+                                <img
+                                    :src="img.url"
+                                    alt="Immich slideshow image"
+                                    class="relative h-full w-full object-contain z-10"
+                                />
+                            </template>
+                            <!-- Foreground Video -->
+                            <template x-if="img.type === 'VIDEO'">
+                                <template x-if="currentIndex === idx">
+                                    <video
+                                        :src="img.url"
+                                        autoplay
+                                        muted
+                                        controls
+                                        playsinline
+                                        @ended="onVideoEnded($event)"
+                                        class="relative h-full w-full object-contain z-10 pointer-events-auto"
+                                    ></video>
+                                </template>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+    </template>
+    <template x-if="images.length === 0">
+        <div class="absolute inset-0 flex items-center justify-center px-6 text-center text-white z-10">
+            <p class="max-w-2xl text-sm opacity-70" x-text="emptyMessage"></p>
+        </div>
+    </template>
 
     <!-- Top Control Overlay -->
     <div
@@ -198,6 +212,13 @@
             currentVideoPlayCount: 0,
             isFullscreen: false,
             autoplayFullscreen: <%= (locals.data && locals.data.settings && locals.data.settings.autoplay_fullscreen) ? 'true' : 'false' %>,
+            touchStartX: 0,
+            touchEndX: 0,
+            touchStartY: 0,
+            touchEndY: 0,
+            swipeOffset: 0,
+            isSwiping: false,
+            shouldAnimate: false,
 
             init() {
                 this.keepControlsAlive()
@@ -230,6 +251,65 @@
                 } else {
                     document.exitFullscreen()
                 }
+            },
+
+            onTouchStart(e) {
+                if (e.touches && e.touches.length > 0) {
+                    const clientX = e.touches[0].clientX
+                    const clientY = e.touches[0].clientY
+
+                    // Ignore touch gestures on buttons, links, inputs, or near bottom controls zone
+                    if (e.target && (
+                        e.target.tagName === 'BUTTON' ||
+                        e.target.tagName === 'A' ||
+                        e.target.tagName === 'INPUT' ||
+                        e.target.closest('a') ||
+                        e.target.closest('button') ||
+                        clientY > window.innerHeight - 100
+                    )) {
+                        this.isSwiping = false
+                        return
+                    }
+
+                    this.isSwiping = true
+                    this.touchStartX = clientX
+                    this.touchStartY = clientY
+                    this.swipeOffset = 0
+                }
+            },
+
+            onTouchMove(e) {
+                if (!this.isSwiping) return
+                if (e.touches && e.touches.length > 0) {
+                    const currentX = e.touches[0].clientX
+                    const currentY = e.touches[0].clientY
+                    const diffX = currentX - this.touchStartX
+                    const diffY = currentY - this.touchStartY
+
+                    // Only handle horizontal swipes
+                    if (Math.abs(diffX) > Math.abs(diffY)) {
+                        e.preventDefault()
+                        this.swipeOffset = diffX
+                    }
+                }
+            },
+
+            onTouchEnd(e) {
+                if (!this.isSwiping) return
+                this.isSwiping = false
+                this.shouldAnimate = true
+
+                const threshold = window.innerWidth * 0.15 // 15% of viewport width
+                if (this.swipeOffset < -threshold) {
+                    this.nextImage()
+                } else if (this.swipeOffset > threshold) {
+                    this.prevImage()
+                }
+                this.swipeOffset = 0
+
+                setTimeout(() => {
+                    this.shouldAnimate = false
+                }, 550)
             },
 
             onSlideChanged() {
