@@ -10,18 +10,32 @@
     <div class="absolute inset-0 w-full h-full z-0 overflow-hidden bg-black flex items-center justify-center">
         <template x-if="images.length > 0">
             <div class="absolute inset-0 w-full h-full">
-                <!-- Blurred background -->
+                <!-- Blurred background (uses thumbnailUrl for both) -->
                 <img
-                    :src="images[currentIndex]"
+                    :src="images[currentIndex].thumbnailUrl"
                     alt=""
                     class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none transition-all duration-700 ease-in-out"
                 />
-                <!-- Main sharp foreground image -->
-                <img
-                    :src="images[currentIndex]"
-                    alt="Immich slideshow image"
-                    class="relative h-full w-full object-contain z-10 transition-all duration-700 ease-in-out"
-                />
+                <!-- Foreground Image -->
+                <template x-if="images[currentIndex].type === 'IMAGE'">
+                    <img
+                        :src="images[currentIndex].url"
+                        alt="Immich slideshow image"
+                        class="relative h-full w-full object-contain z-10 transition-all duration-700 ease-in-out"
+                    />
+                </template>
+                <!-- Foreground Video -->
+                <template x-if="images[currentIndex].type === 'VIDEO'">
+                    <video
+                        :src="images[currentIndex].url"
+                        autoplay
+                        muted
+                        controls
+                        playsinline
+                        @ended="nextImage()"
+                        class="relative h-full w-full object-contain z-10 pointer-events-auto transition-all duration-700 ease-in-out"
+                    ></video>
+                </template>
             </div>
         </template>
         <template x-if="images.length === 0">
@@ -149,7 +163,7 @@
             init() {
                 this.keepControlsAlive()
                 if (this.images.length > 0) {
-                    this.resetSlideshowTimer()
+                    this.onSlideChanged()
                 } else {
                     this.emptyMessage = 'Could not read images from the share URL. Check URL validity and cross-origin permissions.'
                     this.showToast('Failed to load images from Immich share URL.', 'error')
@@ -166,13 +180,20 @@
                 }, 3000)
             },
 
-            resetSlideshowTimer() {
+            onSlideChanged() {
                 if (this.slideTimerId) {
                     clearInterval(this.slideTimerId)
                     this.slideTimerId = null
                 }
 
-                if (this.images.length > 1) {
+                if (this.images.length <= 1) return
+
+                const current = this.images[this.currentIndex]
+                if (current.type === 'VIDEO') {
+                    // Let the video end event transition to the next image automatically.
+                    // We don't start the standard image slide timer.
+                } else {
+                    // Start timer for standard image slides
                     this.slideTimerId = setInterval(
                         () => this.nextImage(),
                         this.slideIntervalMs
@@ -183,6 +204,7 @@
             nextImage() {
                 if (this.images.length <= 1) return
                 this.currentIndex = (this.currentIndex + 1) % this.images.length
+                this.onSlideChanged()
             },
 
             prevImage() {
@@ -190,6 +212,7 @@
                 this.currentIndex =
                     (this.currentIndex - 1 + this.images.length) %
                     this.images.length
+                this.onSlideChanged()
             },
         })
     }

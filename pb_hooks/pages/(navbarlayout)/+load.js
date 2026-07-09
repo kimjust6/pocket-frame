@@ -116,9 +116,19 @@ module.exports = function (context) {
                                         });
                                         log("Bucket " + bucket.timeBucket + " status: " + bucketRes.statusCode);
                                         if (bucketRes.statusCode === 200 && bucketRes.json && Array.isArray(bucketRes.json.id)) {
-                                            assetIds = assetIds.concat(bucketRes.json.id);
-                                            totalCount += bucketRes.json.id.length;
-                                            log("Bucket " + bucket.timeBucket + " added " + bucketRes.json.id.length + " assets. Total so far: " + totalCount);
+                                            const ids = bucketRes.json.id;
+                                            const isImageArray = bucketRes.json.isImage || [];
+                                            const newAssets = [];
+                                            for (let i = 0; i < ids.length; i++) {
+                                                const isImg = isImageArray[i] !== false;
+                                                newAssets.push({
+                                                    id: ids[i],
+                                                    type: isImg ? 'IMAGE' : 'VIDEO'
+                                                });
+                                            }
+                                            assetIds = assetIds.concat(newAssets);
+                                            totalCount += ids.length;
+                                            log("Bucket " + bucket.timeBucket + " added " + ids.length + " assets. Total so far: " + totalCount);
                                         } else {
                                             log("Bucket " + bucket.timeBucket + " returned invalid response: " + bucketRes.statusCode + " " + bucketRes.raw);
                                         }
@@ -141,12 +151,19 @@ module.exports = function (context) {
                 
                 if (assetIds.length > 0) {
                     const atQuery = info.atToken ? `&at=${encodeURIComponent(info.atToken)}` : '';
-                    // Use preview/thumbnail URL to support HEIC/HEIF across all browsers and make it fast
-                    images = assetIds.map(assetId => 
-                        `${info.origin}/api/assets/${assetId}/thumbnail?key=${encodeURIComponent(info.shareKey)}&size=preview${atQuery}`
-                    );
-                    statusText = `Loaded ${images.length} image${images.length === 1 ? '' : 's'} from Immich.`;
-                    log("Successfully loaded " + images.length + " image URLs.");
+                    images = assetIds.map(asset => {
+                        const thumbnailUrl = `${info.origin}/api/assets/${asset.id}/thumbnail?key=${encodeURIComponent(info.shareKey)}&size=preview${atQuery}`;
+                        const url = asset.type === 'VIDEO'
+                            ? `${info.origin}/api/assets/${asset.id}/video/playback?key=${encodeURIComponent(info.shareKey)}${atQuery}`
+                            : thumbnailUrl;
+                        return {
+                            url,
+                            thumbnailUrl,
+                            type: asset.type
+                        };
+                    });
+                    statusText = `Loaded ${images.length} item${images.length === 1 ? '' : 's'} from Immich.`;
+                    log("Successfully loaded " + images.length + " media items.");
                 } else {
                     // Try og:image fallback
                     log("No assets found. Trying OG image fallback...");
@@ -259,8 +276,11 @@ function collectAssetIds(value, bucket) {
             typeof value.type === 'string'
                 ? value.type.toUpperCase()
                 : ''
-        if (!type || type === 'IMAGE') {
-            bucket.push(value.id)
+        if (!type || type === 'IMAGE' || type === 'VIDEO') {
+            bucket.push({
+                id: value.id,
+                type: type === 'VIDEO' ? 'VIDEO' : 'IMAGE'
+            })
         }
     }
 
