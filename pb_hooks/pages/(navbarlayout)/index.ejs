@@ -62,12 +62,29 @@
             </h1>
             <p class="text-xs opacity-75 drop-shadow-sm mt-0.5" x-text="statusText"></p>
         </a>
-        <a
-            href="/settings"
-            class="pointer-events-auto border border-white/20 hover:border-white hover:bg-white/10 text-white rounded-xl px-4 py-2 text-sm font-semibold opacity-90 transition-all backdrop-blur-md shadow-lg drop-shadow-sm"
-        >
-            Settings
-        </a>
+        <div class="flex items-center gap-3 pointer-events-auto">
+            <button
+                @click="toggleFullscreen()"
+                class="border border-white/20 hover:border-white hover:bg-white/10 text-white rounded-xl px-4 py-2 text-sm font-semibold opacity-90 transition-all backdrop-blur-md shadow-lg drop-shadow-sm flex items-center gap-2"
+                title="Toggle Fullscreen"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <template x-if="!isFullscreen">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4M16 4h4v4M4 16v4h4M20 16v4h-4" />
+                    </template>
+                    <template x-if="isFullscreen">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h4v4H4zm12 0h4v4h-4zM4 16h4v4H4zm12 0h4v4h-4z" />
+                    </template>
+                </svg>
+                <span x-text="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'"></span>
+            </button>
+            <a
+                href="/settings"
+                class="border border-white/20 hover:border-white hover:bg-white/10 text-white rounded-xl px-4 py-2 text-sm font-semibold opacity-90 transition-all backdrop-blur-md shadow-lg drop-shadow-sm"
+            >
+                Settings
+            </a>
+        </div>
     </div>
 
     <!-- Left Navigation Arrow -->
@@ -144,6 +161,23 @@
             </div>
         </template>
     </div>
+
+    <!-- Autoplay Fullscreen Start Overlay -->
+    <template x-if="autoplayFullscreen && !isFullscreen">
+        <div 
+            @click="toggleFullscreen()"
+            class="fixed inset-0 z-[1000] bg-black/95 flex flex-col items-center justify-center cursor-pointer select-none text-white transition-all duration-500"
+        >
+            <div class="text-center space-y-4 max-w-sm p-6">
+                <!-- Tap Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-[color:var(--color-accent)] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                </svg>
+                <h2 class="text-xl font-bold tracking-tight">Tap to Start Kiosk Mode</h2>
+                <p class="text-xs opacity-70">This will launch the Immich Slideshow in fullscreen.</p>
+            </div>
+        </div>
+    </template>
 </div>
 
 <script src="/js/toast-helper.js"></script>
@@ -162,9 +196,14 @@
             videoRepeatThreshold: <%= (locals.data && locals.data.settings && locals.data.settings.video_repeat_threshold) ? locals.data.settings.video_repeat_threshold : 5 %>,
             videoRepeatCount: <%= (locals.data && locals.data.settings && locals.data.settings.video_repeat_count) ? locals.data.settings.video_repeat_count : 3 %>,
             currentVideoPlayCount: 0,
+            isFullscreen: false,
+            autoplayFullscreen: <%= (locals.data && locals.data.settings && locals.data.settings.autoplay_fullscreen) ? 'true' : 'false' %>,
 
             init() {
                 this.keepControlsAlive()
+                document.addEventListener('fullscreenchange', () => {
+                    this.isFullscreen = !!document.fullscreenElement
+                })
                 if (this.images.length > 0) {
                     this.onSlideChanged()
                 } else {
@@ -181,6 +220,16 @@
                 this.controlsTimeout = setTimeout(() => {
                     this.showControls = false
                 }, 3000)
+            },
+
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch((err) => {
+                        this.showToast('Error enabling fullscreen: ' + err.message, 'error')
+                    })
+                } else {
+                    document.exitFullscreen()
+                }
             },
 
             onSlideChanged() {

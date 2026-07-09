@@ -25,7 +25,8 @@ module.exports = function (context) {
             latest_pin_count: 6,
             slide_interval: 7,
             video_repeat_threshold: 5,
-            video_repeat_count: 3
+            video_repeat_count: 3,
+            autoplay_fullscreen: false
         };
 
         try {
@@ -60,7 +61,8 @@ module.exports = function (context) {
                     latest_pin_count: record.getInt("latest_pin_count") || 6,
                     slide_interval: record.getInt("slide_interval") || 7,
                     video_repeat_threshold: record.getInt("video_repeat_threshold") || 5,
-                    video_repeat_count: record.getInt("video_repeat_count") || 3
+                    video_repeat_count: record.getInt("video_repeat_count") || 3,
+                    autoplay_fullscreen: record.getBool("autoplay_fullscreen")
                 };
             }
         } catch (e) {

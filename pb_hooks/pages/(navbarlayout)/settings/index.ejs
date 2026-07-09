@@ -38,56 +38,85 @@
                 >Use a full Immich share link. The slideshow page will load
                 images from this URL.</span
             >
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 bg-[color:var(--color-primary)]/5 border border-[color:var(--color-primary)]/10 rounded-lg p-3 items-center">
+        </div>
+
+        <div class="divider opacity-10"></div>
+
+        <h2 class="text-base font-bold text-[color:var(--color-accent)]">
+            Slideshow Options
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-[color:var(--color-primary)]/5 border border-[color:var(--color-primary)]/10 rounded-lg p-4">
+            <div class="flex items-center gap-3">
+                <input
+                    type="checkbox"
+                    x-model="settings.randomize"
+                    id="randomize"
+                    class="checkbox checkbox-sm checkbox-accent rounded"
+                />
+                <label for="randomize" class="text-sm font-semibold cursor-pointer select-none">
+                    Randomize order
+                </label>
+            </div>
+            <div class="flex items-center gap-3">
+                <input
+                    type="checkbox"
+                    x-model="settings.prioritize_videos"
+                    id="prioritize_videos"
+                    class="checkbox checkbox-sm checkbox-accent rounded"
+                />
+                <label for="prioritize_videos" class="text-sm font-semibold cursor-pointer select-none">
+                    Prioritize videos
+                </label>
+            </div>
+            <div class="flex items-center gap-3">
+                <input
+                    type="checkbox"
+                    x-model="settings.autoplay_fullscreen"
+                    id="autoplay_fullscreen"
+                    class="checkbox checkbox-sm checkbox-accent rounded"
+                />
+                <label for="autoplay_fullscreen" class="text-sm font-semibold cursor-pointer select-none">
+                    Autoplay fullscreen
+                </label>
+            </div>
+        </div>
+
+        <div class="divider opacity-10"></div>
+
+        <h2 class="text-base font-bold text-[color:var(--color-accent)]">
+            Slideshow Tuning
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[color:var(--color-primary)]/5 border border-[color:var(--color-primary)]/10 rounded-lg p-4">
+            <div class="flex items-center justify-between md:justify-start gap-4">
+                <label for="latest_pin_count" class="text-sm font-semibold">
+                    Pin newest items to front:
+                </label>
                 <div class="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        x-model="settings.randomize"
-                        id="randomize"
-                        class="checkbox checkbox-xs checkbox-accent"
-                    />
-                    <label for="randomize" class="text-xs font-semibold cursor-pointer select-none">
-                        Randomize order
-                    </label>
-                </div>
-                <div class="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        x-model="settings.prioritize_videos"
-                        id="prioritize_videos"
-                        class="checkbox checkbox-xs checkbox-accent"
-                    />
-                    <label for="prioritize_videos" class="text-xs font-semibold cursor-pointer select-none">
-                        Prioritize videos
-                    </label>
-                </div>
-                <div class="flex items-center gap-2">
-                    <label for="latest_pin_count" class="text-xs font-semibold whitespace-nowrap">
-                        Pin newest:
-                    </label>
                     <input
                         type="number"
                         x-model.number="settings.latest_pin_count"
                         id="latest_pin_count"
                         min="0"
                         placeholder="6"
-                        class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-16 bg-transparent text-center"
+                        class="border-[color:var(--color-primary)]/10 input input-sm input-bordered w-20 bg-transparent text-center"
                     />
-                    <span class="text-[10px] opacity-60 font-medium">items</span>
+                    <span class="text-xs opacity-60 font-semibold">items</span>
                 </div>
+            </div>
+            <div class="flex items-center justify-between md:justify-start gap-4">
+                <label for="slide_interval" class="text-sm font-semibold">
+                    Slide transition duration:
+                </label>
                 <div class="flex items-center gap-2">
-                    <label for="slide_interval" class="text-xs font-semibold whitespace-nowrap">
-                        Slide duration:
-                    </label>
                     <input
                         type="number"
                         x-model.number="settings.slide_interval"
                         id="slide_interval"
                         min="1"
                         placeholder="7"
-                        class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-16 bg-transparent text-center"
+                        class="border-[color:var(--color-primary)]/10 input input-sm input-bordered w-20 bg-transparent text-center"
                     />
-                    <span class="text-[10px] opacity-60 font-medium">seconds</span>
+                    <span class="text-xs opacity-60 font-semibold">seconds</span>
                 </div>
             </div>
         </div>
@@ -97,34 +126,38 @@
         <h2 class="text-base font-bold text-[color:var(--color-accent)]">
             Video Settings
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[color:var(--color-primary)]/5 border border-[color:var(--color-primary)]/10 rounded-lg p-3 items-center">
-            <div class="flex items-center gap-2">
-                <label for="video_repeat_threshold" class="text-xs font-semibold whitespace-nowrap">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[color:var(--color-primary)]/5 border border-[color:var(--color-primary)]/10 rounded-lg p-4">
+            <div class="flex items-center justify-between md:justify-start gap-4">
+                <label for="video_repeat_threshold" class="text-sm font-semibold">
                     Repeat videos shorter than:
                 </label>
-                <input
-                    type="number"
-                    x-model.number="settings.video_repeat_threshold"
-                    id="video_repeat_threshold"
-                    min="0"
-                    placeholder="5"
-                    class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-16 bg-transparent text-center"
-                />
-                <span class="text-[10px] opacity-60 font-medium">seconds</span>
+                <div class="flex items-center gap-2">
+                    <input
+                        type="number"
+                        x-model.number="settings.video_repeat_threshold"
+                        id="video_repeat_threshold"
+                        min="0"
+                        placeholder="5"
+                        class="border-[color:var(--color-primary)]/10 input input-sm input-bordered w-20 bg-transparent text-center"
+                    />
+                    <span class="text-xs opacity-60 font-semibold">seconds</span>
+                </div>
             </div>
-            <div class="flex items-center gap-2">
-                <label for="video_repeat_count" class="text-xs font-semibold whitespace-nowrap">
+            <div class="flex items-center justify-between md:justify-start gap-4">
+                <label for="video_repeat_count" class="text-sm font-semibold">
                     Repeat count:
                 </label>
-                <input
-                    type="number"
-                    x-model.number="settings.video_repeat_count"
-                    id="video_repeat_count"
-                    min="1"
-                    placeholder="3"
-                    class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-16 bg-transparent text-center"
-                />
-                <span class="text-[10px] opacity-60 font-medium">times</span>
+                <div class="flex items-center gap-2">
+                    <input
+                        type="number"
+                        x-model.number="settings.video_repeat_count"
+                        id="video_repeat_count"
+                        min="1"
+                        placeholder="3"
+                        class="border-[color:var(--color-primary)]/10 input input-sm input-bordered w-20 bg-transparent text-center"
+                    />
+                    <span class="text-xs opacity-60 font-semibold">times</span>
+                </div>
             </div>
         </div>
 
