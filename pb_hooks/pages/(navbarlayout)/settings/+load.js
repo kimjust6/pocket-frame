@@ -55,53 +55,12 @@ module.exports = function (context) {
             console.error("Failed to load settings in settings loader:", e);
         }
 
-        let applications = [];
-        try {
-            const appRecords = $app.findRecordsByFilter("applications", userFilter, "order, name", 200, 0, filterParams);
-            applications = appRecords.map(app => ({
-                id: app.id,
-                user: app.getString("user"),
-                name: app.getString("name"),
-                url: app.getString("url"),
-                icon: app.getString("icon"),
-                description: app.getString("description"),
-                order: app.getInt("order")
-            }));
-        } catch (e) { }
-
-        let categories = [];
-        try {
-            const catRecords = $app.findRecordsByFilter("bookmark_categories", "1=1", "order, name", 100, 0);
-            categories = catRecords.map(cat => ({
-                id: cat.id,
-                name: cat.getString("name"),
-                order: cat.getInt("order")
-            }));
-        } catch (e) { }
-
-        let bookmarks = [];
-        try {
-            let bRecords = $app.findRecordsByFilter("bookmarks", userFilter, "order, name", 1000, 0, filterParams);
-            if (!bRecords || bRecords.length === 0) {
-                bRecords = $app.findRecordsByFilter("bookmarks", "1=1", "order, name", 1000, 0);
-            }
-            bookmarks = bRecords.map(b => ({
-                id: b.id,
-                user: b.getString("user"),
-                name: b.getString("name"),
-                url: b.getString("url"),
-                icon: b.getString("icon"),
-                category: b.getString("category"),
-                order: b.getInt("order")
-            }));
-        } catch (e) { }
-
         return {
             isHome: false,
             settings,
-            applications,
-            categories,
-            bookmarks
+            applications: [],
+            categories: [],
+            bookmarks: []
         };
     } catch (e) {
         console.error("Failed in settings loader:", e);
