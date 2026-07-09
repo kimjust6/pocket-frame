@@ -8,12 +8,9 @@
 
     <body
         style="
-            --color-primary: <%= locals.settings ?
-                locals.settings.color_primary: '#d9d9d9' %>;
-            --color-accent: <%= locals.settings ?
-                locals.settings.color_accent: '#50fbc2' %>;
-            --color-background: <%= locals.settings ?
-                locals.settings.color_background: '#282525' %>;
+            --color-primary: <%= (locals.data && locals.data.settings && locals.data.settings.color_primary) ? locals.data.settings.color_primary : (locals.settings ? locals.settings.color_primary : '#d9d9d9') %>;
+            --color-accent: <%= (locals.data && locals.data.settings && locals.data.settings.color_accent) ? locals.data.settings.color_accent : (locals.settings ? locals.settings.color_accent : '#50fbc2') %>;
+            --color-background: <%= (locals.data && locals.data.settings && locals.data.settings.color_background) ? locals.data.settings.color_background : (locals.settings ? locals.settings.color_background : '#282525') %>;
             background-color: var(--color-background);
             color: var(--color-primary);
         "

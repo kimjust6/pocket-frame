@@ -1,70 +1,123 @@
 <div
     x-data="immichSlideshow()"
-    class="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-8 md:py-12"
+    class="fixed inset-0 w-screen h-screen bg-black overflow-hidden select-none"
+    :class="{ 'cursor-none': !showControls }"
+    @mousemove="keepControlsAlive()"
+    @click="keepControlsAlive()"
+    @touchstart="keepControlsAlive()"
 >
-    <header class="mb-6 flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-[color:var(--color-primary)]">
-                Immich Slideshow
-            </h1>
-            <p class="text-xs opacity-60" x-text="statusText"></p>
-        </div>
-        <a
-            href="/settings"
-            class="border-[color:var(--color-primary)]/20 rounded-xl border px-4 py-2 text-sm font-semibold opacity-80 transition-all hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"
-        >
-            Settings
-        </a>
-    </header>
-
-    <main class="relative flex-1">
-        <div
-            class="border-[color:var(--color-primary)]/15 bg-[color:var(--color-primary)]/5 relative h-[70vh] w-full overflow-hidden rounded-2xl border"
-        >
-            <template x-if="images.length > 0">
+    <!-- Background Image Layer (Blurred) & Foreground Image Layer -->
+    <div class="absolute inset-0 w-full h-full z-0 overflow-hidden bg-black flex items-center justify-center">
+        <template x-if="images.length > 0">
+            <div class="absolute inset-0 w-full h-full">
+                <!-- Blurred background -->
+                <img
+                    :src="images[currentIndex]"
+                    alt=""
+                    class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none transition-all duration-700 ease-in-out"
+                />
+                <!-- Main sharp foreground image -->
                 <img
                     :src="images[currentIndex]"
                     alt="Immich slideshow image"
-                    class="h-full w-full object-contain"
+                    class="relative h-full w-full object-contain z-10 transition-all duration-700 ease-in-out"
                 />
-            </template>
-
-            <div
-                x-show="images.length === 0"
-                class="flex h-full items-center justify-center px-6 text-center"
-            >
-                <p
-                    class="max-w-2xl text-sm opacity-70"
-                    x-text="emptyMessage"
-                ></p>
             </div>
-
-            <button
-                x-show="images.length > 1"
-                @click="prevImage()"
-                class="bg-[color:var(--color-background)]/70 absolute left-3 top-1/2 -translate-y-1/2 rounded-full px-3 py-2 text-lg"
-                title="Previous"
-            >
-                <
-            </button>
-            <button
-                x-show="images.length > 1"
-                @click="nextImage()"
-                class="bg-[color:var(--color-background)]/70 absolute right-3 top-1/2 -translate-y-1/2 rounded-full px-3 py-2 text-lg"
-                title="Next"
-            >
-                >
-            </button>
-        </div>
-    </main>
-
-    <div class="mt-4 text-center text-xs opacity-60">
-        <span
-            x-text="images.length > 0 ? `${currentIndex + 1} / ${images.length}` : ''"
-        ></span>
+        </template>
+        <template x-if="images.length === 0">
+            <div class="flex h-full items-center justify-center px-6 text-center text-white z-10">
+                <p class="max-w-2xl text-sm opacity-70" x-text="emptyMessage"></p>
+            </div>
+        </template>
     </div>
 
-    <div class="toast toast-end toast-bottom z-[100]">
+    <!-- Top Control Overlay -->
+    <div
+        x-show="showControls"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="-translate-y-full opacity-0"
+        x-transition:enter-end="translate-y-0 opacity-100"
+        x-transition:leave="transition ease-in duration-300"
+        x-transition:leave-start="translate-y-0 opacity-100"
+        x-transition:leave-end="-translate-y-full opacity-0"
+        class="absolute top-0 inset-x-0 p-6 z-20 flex justify-between items-start bg-gradient-to-b from-black/90 via-black/50 to-transparent pointer-events-none select-none text-white"
+    >
+        <div class="pointer-events-auto">
+            <h1 class="text-xl font-bold tracking-tight text-white drop-shadow-md">
+                Immich Slideshow
+            </h1>
+            <p class="text-xs opacity-75 drop-shadow-sm mt-0.5" x-text="statusText"></p>
+        </div>
+        <a
+            href="/settings"
+            class="pointer-events-auto border border-white/20 hover:border-white hover:bg-white/10 text-white rounded-xl px-4 py-2 text-sm font-semibold opacity-90 transition-all backdrop-blur-md shadow-lg drop-shadow-sm"
+        >
+            Settings
+        </a>
+    </div>
+
+    <!-- Left Navigation Arrow -->
+    <div
+        x-show="showControls && images.length > 1"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="-translate-x-8 opacity-0"
+        x-transition:enter-end="translate-x-0 opacity-100"
+        x-transition:leave="transition ease-in duration-300"
+        x-transition:leave-start="translate-x-0 opacity-100"
+        x-transition:leave-end="-translate-x-8 opacity-0"
+        class="absolute left-6 top-1/2 -translate-y-1/2 z-20 pointer-events-auto"
+    >
+        <button
+            @click="prevImage()"
+            class="bg-black/40 hover:bg-black/60 text-white border border-white/10 w-14 h-14 flex items-center justify-center rounded-full backdrop-blur-md transition-all shadow-lg active:scale-95"
+            title="Previous Image"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Right Navigation Arrow -->
+    <div
+        x-show="showControls && images.length > 1"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="translate-x-8 opacity-0"
+        x-transition:enter-end="translate-x-0 opacity-100"
+        x-transition:leave="transition ease-in duration-300"
+        x-transition:leave-start="translate-x-0 opacity-100"
+        x-transition:leave-end="translate-x-8 opacity-0"
+        class="absolute right-6 top-1/2 -translate-y-1/2 z-20 pointer-events-auto"
+    >
+        <button
+            @click="nextImage()"
+            class="bg-black/40 hover:bg-black/60 text-white border border-white/10 w-14 h-14 flex items-center justify-center rounded-full backdrop-blur-md transition-all shadow-lg active:scale-95"
+            title="Next Image"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Bottom Control Overlay -->
+    <div
+        x-show="showControls && images.length > 0"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="translate-y-full opacity-0"
+        x-transition:enter-end="translate-y-0 opacity-100"
+        x-transition:leave="transition ease-in duration-300"
+        x-transition:leave-start="translate-y-0 opacity-100"
+        x-transition:leave-end="translate-y-full opacity-0"
+        class="absolute bottom-0 inset-x-0 p-6 z-20 flex justify-center items-center bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none select-none text-white"
+    >
+        <div class="pointer-events-auto backdrop-blur-md bg-black/40 border border-white/10 px-5 py-2 rounded-full shadow-lg text-sm font-semibold tracking-wider drop-shadow-sm flex items-center gap-3">
+            <span x-text="`${currentIndex + 1} / ${images.length}`"></span>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast toast-end toast-bottom z-[200] pointer-events-auto">
         <template x-for="toast in toasts" :key="toast.id">
             <div :class="`alert ${toastAlertClass(toast.type)} shadow-lg`">
                 <span x-text="toast.message"></span>
@@ -83,182 +136,34 @@
 <script>
     function immichSlideshow() {
         return window.withToastHelpers({
-            shareUrl:
-                '<%= locals.settings ? locals.settings.search_engine : "" %>',
-            images: [],
+            shareUrl: '<%= (locals.data && locals.data.settings) ? locals.data.settings.search_engine : "" %>',
+            images: <%- JSON.stringify(data.images || []) %>,
             currentIndex: 0,
-            statusText: 'Loading slideshow...',
-            emptyMessage:
-                'No images loaded. Add an Immich share URL in Settings to start the slideshow.',
+            statusText: '<%= data.statusText || "Loading slideshow..." %>',
+            emptyMessage: 'No images loaded. Add an Immich share URL in Settings to start the slideshow.',
             slideTimerId: null,
             slideIntervalMs: 7000,
+            showControls: true,
+            controlsTimeout: null,
 
             init() {
-                this.start()
-            },
-
-            normalizeHttpUrl(rawValue) {
-                if (typeof rawValue !== 'string' || !rawValue.trim()) return ''
-                const trimmed = rawValue.trim()
-                const withScheme = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(trimmed)
-                    ? trimmed
-                    : `https://${trimmed}`
-
-                try {
-                    const parsed = new URL(withScheme)
-                    if (
-                        parsed.protocol !== 'http:' &&
-                        parsed.protocol !== 'https:'
-                    )
-                        return ''
-                    return parsed.toString()
-                } catch (_) {
-                    return ''
+                this.keepControlsAlive()
+                if (this.images.length > 0) {
+                    this.resetSlideshowTimer()
+                } else {
+                    this.emptyMessage = 'Could not read images from the share URL. Check URL validity and cross-origin permissions.'
+                    this.showToast('Failed to load images from Immich share URL.', 'error')
                 }
             },
 
-            parseShareInfo(urlValue) {
-                const normalized = this.normalizeHttpUrl(urlValue)
-                if (!normalized) return null
-
-                const parsed = new URL(normalized)
-                const parts = parsed.pathname.split('/').filter(Boolean)
-                const shareIndex = parts.indexOf('share')
-                if (shareIndex === -1 || !parts[shareIndex + 1]) return null
-
-                return {
-                    origin: parsed.origin,
-                    shareKey: parts[shareIndex + 1],
+            keepControlsAlive() {
+                this.showControls = true
+                if (this.controlsTimeout) {
+                    clearTimeout(this.controlsTimeout)
                 }
-            },
-
-            async fetchJson(url, headers = {}) {
-                const response = await fetch(url, { headers })
-                if (!response.ok) return null
-                const contentType = response.headers.get('content-type') || ''
-                if (!contentType.includes('application/json')) return null
-                return response.json()
-            },
-
-            collectAssetIds(value, bucket) {
-                if (!value || typeof value !== 'object') return
-
-                if (Array.isArray(value)) {
-                    value.forEach((item) => this.collectAssetIds(item, bucket))
-                    return
-                }
-
-                if (typeof value.id === 'string') {
-                    const type =
-                        typeof value.type === 'string'
-                            ? value.type.toUpperCase()
-                            : ''
-                    if (!type || type === 'IMAGE') {
-                        bucket.add(value.id)
-                    }
-                }
-
-                for (const key of Object.keys(value)) {
-                    this.collectAssetIds(value[key], bucket)
-                }
-            },
-
-            async loadImageBlobUrl(origin, shareKey, assetId) {
-                const candidates = [
-                    {
-                        url: `${origin}/api/assets/${assetId}/original`,
-                        headers: { 'x-share-key': shareKey },
-                    },
-                    {
-                        url: `${origin}/api/assets/${assetId}/thumbnail?size=preview`,
-                        headers: { 'x-share-key': shareKey },
-                    },
-                    {
-                        url: `${origin}/api/assets/${assetId}/thumbnail`,
-                        headers: { 'x-share-key': shareKey },
-                    },
-                    {
-                        url: `${origin}/api/assets/${assetId}/original?key=${encodeURIComponent(shareKey)}`,
-                        headers: {},
-                    },
-                    {
-                        url: `${origin}/api/assets/${assetId}/thumbnail?key=${encodeURIComponent(shareKey)}&size=preview`,
-                        headers: {},
-                    },
-                    {
-                        url: `${origin}/api/assets/${assetId}/thumbnail?key=${encodeURIComponent(shareKey)}`,
-                        headers: {},
-                    },
-                ]
-
-                for (const candidate of candidates) {
-                    try {
-                        const response = await fetch(candidate.url, {
-                            headers: candidate.headers,
-                        })
-                        if (!response.ok) continue
-                        const type = response.headers.get('content-type') || ''
-                        if (!type.startsWith('image/')) continue
-                        const blob = await response.blob()
-                        return URL.createObjectURL(blob)
-                    } catch (_) {
-                        // Continue to next candidate.
-                    }
-                }
-
-                return null
-            },
-
-            async fetchSharePayload(origin, shareKey) {
-                const encodedKey = encodeURIComponent(shareKey)
-                const calls = [
-                    () =>
-                        this.fetchJson(
-                            `${origin}/api/shared-links/me?key=${encodedKey}`
-                        ),
-                    () =>
-                        this.fetchJson(
-                            `${origin}/api/shared-links/${encodedKey}`
-                        ),
-                    () =>
-                        this.fetchJson(`${origin}/api/shared-links/me`, {
-                            'x-share-key': shareKey,
-                        }),
-                    () =>
-                        this.fetchJson(`${origin}/api/shared-links`, {
-                            'x-share-key': shareKey,
-                        }),
-                ]
-
-                for (const call of calls) {
-                    try {
-                        const payload = await call()
-                        if (payload) return payload
-                    } catch (_) {
-                        // Continue to next endpoint.
-                    }
-                }
-
-                return null
-            },
-
-            async fetchOgImageFallback(urlValue) {
-                try {
-                    const response = await fetch(urlValue)
-                    if (!response.ok) return []
-                    const html = await response.text()
-                    const match =
-                        html.match(
-                            /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i
-                        ) ||
-                        html.match(
-                            /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i
-                        )
-                    if (!match || !match[1]) return []
-                    return [match[1]]
-                } catch (_) {
-                    return []
-                }
+                this.controlsTimeout = setTimeout(() => {
+                    this.showControls = false
+                }, 3000)
             },
 
             resetSlideshowTimer() {
@@ -285,60 +190,6 @@
                 this.currentIndex =
                     (this.currentIndex - 1 + this.images.length) %
                     this.images.length
-            },
-
-            async start() {
-                const info = this.parseShareInfo(this.shareUrl)
-                if (!info) {
-                    this.statusText = 'No valid Immich share URL configured.'
-                    this.emptyMessage =
-                        'Open Settings and set a full Immich share URL.'
-                    return
-                }
-
-                const payload = await this.fetchSharePayload(
-                    info.origin,
-                    info.shareKey
-                )
-                const assetIds = new Set()
-                if (payload) {
-                    this.collectAssetIds(payload, assetIds)
-                }
-
-                const loadedImages = []
-                for (const assetId of assetIds) {
-                    const imageUrl = await this.loadImageBlobUrl(
-                        info.origin,
-                        info.shareKey,
-                        assetId
-                    )
-                    if (imageUrl) {
-                        loadedImages.push(imageUrl)
-                    }
-                }
-
-                if (loadedImages.length === 0) {
-                    const fallback = await this.fetchOgImageFallback(
-                        this.shareUrl
-                    )
-                    loadedImages.push(...fallback)
-                }
-
-                this.images = loadedImages
-                this.currentIndex = 0
-
-                if (this.images.length > 0) {
-                    this.statusText = `Loaded ${this.images.length} image${this.images.length === 1 ? '' : 's'} from Immich.`
-                    this.resetSlideshowTimer()
-                } else {
-                    this.statusText = 'Unable to load images from Immich.'
-                    this.emptyMessage =
-                        'Could not read images from the share URL. Check URL validity and cross-origin permissions.'
-                    this.showToast(
-                        'Failed to load images from Immich share URL.',
-                        'error'
-                    )
-                }
             },
         })
     }

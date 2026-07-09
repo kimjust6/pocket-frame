@@ -10,7 +10,7 @@ module.exports = function shellData() {
         navigation: [
             { title: 'Settings', href: '/settings', desktop: true, mobile: true },
         ],
-        headerVisible: true,
+        headerVisible: window.location.pathname !== '/',
 
         init() { },
 

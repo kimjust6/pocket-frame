@@ -142,9 +142,47 @@
                 this.pb.authStore.loadFromCookie(document.cookie);
             },
 
+            extractUrlCandidate(rawValue) {
+                if (typeof rawValue !== 'string') return '';
+                const trimmed = rawValue.trim();
+                if (!trimmed) return '';
+
+                const markdown = trimmed.match(/^\[[^\]]+\]\((https?:\/\/[^\s)]+)\)$/i);
+                return markdown && markdown[1] ? markdown[1].trim() : trimmed;
+            },
+
+            normalizeHttpUrl(rawValue) {
+                const candidate = this.extractUrlCandidate(rawValue);
+                if (!candidate) return '';
+
+                const withScheme = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(candidate)
+                    ? candidate
+                    : `https://${candidate}`;
+
+                try {
+                    const parsed = new URL(withScheme);
+                    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+                        return '';
+                    }
+                    return parsed.toString();
+                } catch (_) {
+                    return '';
+                }
+            },
+
             async saveSettings() {
                 try {
-                    await this.pb.collection('flame_settings').update(this.settings.id, { ...this.settings, user: this.userId });
+                    const normalizedShareUrl = this.normalizeHttpUrl(this.settings.search_engine);
+                    if (!normalizedShareUrl) {
+                        this.showToast('Please enter a valid Immich share URL.', 'warning');
+                        return;
+                    }
+
+                    await this.pb.collection('flame_settings').update(this.settings.id, {
+                        ...this.settings,
+                        search_engine: normalizedShareUrl,
+                        user: this.userId
+                    });
                     this.showToast('Settings updated successfully!', 'success', 1200);
                     setTimeout(() => {
                         window.location.href = '/';
