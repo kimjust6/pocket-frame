@@ -38,7 +38,7 @@
                 >Use a full Immich share link. The slideshow page will load
                 images from this URL.</span
             >
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 bg-[color:var(--color-primary)]/5 border border-[color:var(--color-primary)]/10 rounded-lg p-3 items-center">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4 bg-[color:var(--color-primary)]/5 border border-[color:var(--color-primary)]/10 rounded-lg p-3 items-center">
                 <div class="flex items-center gap-2">
                     <input
                         type="checkbox"
@@ -75,6 +75,56 @@
                     />
                     <span class="text-[10px] opacity-60 font-medium">items</span>
                 </div>
+                <div class="flex items-center gap-2">
+                    <label for="slide_interval" class="text-xs font-semibold whitespace-nowrap">
+                        Slide duration:
+                    </label>
+                    <input
+                        type="number"
+                        x-model.number="settings.slide_interval"
+                        id="slide_interval"
+                        min="1"
+                        placeholder="7"
+                        class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-16 bg-transparent text-center"
+                    />
+                    <span class="text-[10px] opacity-60 font-medium">seconds</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="divider opacity-10"></div>
+
+        <h2 class="text-base font-bold text-[color:var(--color-accent)]">
+            Video Settings
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[color:var(--color-primary)]/5 border border-[color:var(--color-primary)]/10 rounded-lg p-3 items-center">
+            <div class="flex items-center gap-2">
+                <label for="video_repeat_threshold" class="text-xs font-semibold whitespace-nowrap">
+                    Repeat videos shorter than:
+                </label>
+                <input
+                    type="number"
+                    x-model.number="settings.video_repeat_threshold"
+                    id="video_repeat_threshold"
+                    min="0"
+                    placeholder="5"
+                    class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-16 bg-transparent text-center"
+                />
+                <span class="text-[10px] opacity-60 font-medium">seconds</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="video_repeat_count" class="text-xs font-semibold whitespace-nowrap">
+                    Repeat count:
+                </label>
+                <input
+                    type="number"
+                    x-model.number="settings.video_repeat_count"
+                    id="video_repeat_count"
+                    min="1"
+                    placeholder="3"
+                    class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-16 bg-transparent text-center"
+                />
+                <span class="text-[10px] opacity-60 font-medium">times</span>
             </div>
         </div>
 

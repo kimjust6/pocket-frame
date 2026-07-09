@@ -32,7 +32,7 @@
                         muted
                         controls
                         playsinline
-                        @ended="nextImage()"
+                        @ended="onVideoEnded($event)"
                         class="relative h-full w-full object-contain z-10 pointer-events-auto transition-all duration-700 ease-in-out"
                     ></video>
                 </template>
@@ -56,12 +56,12 @@
         x-transition:leave-end="-translate-y-full opacity-0"
         class="absolute top-0 inset-x-0 p-6 z-20 flex justify-between items-start bg-gradient-to-b from-black/90 via-black/50 to-transparent pointer-events-none select-none text-white"
     >
-        <div class="pointer-events-auto">
+        <a href="/" class="pointer-events-auto cursor-pointer block hover:opacity-90 select-none">
             <h1 class="text-xl font-bold tracking-tight text-white drop-shadow-md">
                 Immich Slideshow
             </h1>
             <p class="text-xs opacity-75 drop-shadow-sm mt-0.5" x-text="statusText"></p>
-        </div>
+        </a>
         <a
             href="/settings"
             class="pointer-events-auto border border-white/20 hover:border-white hover:bg-white/10 text-white rounded-xl px-4 py-2 text-sm font-semibold opacity-90 transition-all backdrop-blur-md shadow-lg drop-shadow-sm"
@@ -156,9 +156,12 @@
             statusText: '<%= data.statusText || "Loading slideshow..." %>',
             emptyMessage: 'No images loaded. Add an Immich share URL in Settings to start the slideshow.',
             slideTimerId: null,
-            slideIntervalMs: 7000,
+            slideIntervalMs: <%= (locals.data && locals.data.settings && locals.data.settings.slide_interval) ? locals.data.settings.slide_interval * 1000 : 7000 %>,
             showControls: true,
             controlsTimeout: null,
+            videoRepeatThreshold: <%= (locals.data && locals.data.settings && locals.data.settings.video_repeat_threshold) ? locals.data.settings.video_repeat_threshold : 5 %>,
+            videoRepeatCount: <%= (locals.data && locals.data.settings && locals.data.settings.video_repeat_count) ? locals.data.settings.video_repeat_count : 3 %>,
+            currentVideoPlayCount: 0,
 
             init() {
                 this.keepControlsAlive()
@@ -181,6 +184,7 @@
             },
 
             onSlideChanged() {
+                this.currentVideoPlayCount = 0
                 if (this.slideTimerId) {
                     clearInterval(this.slideTimerId)
                     this.slideTimerId = null
@@ -199,6 +203,24 @@
                         this.slideIntervalMs
                     )
                 }
+            },
+
+            onVideoEnded(e) {
+                const current = this.images[this.currentIndex]
+                const duration = current.duration || (e.target ? Math.round(e.target.duration) : 0)
+
+                if (duration > 0 && duration < this.videoRepeatThreshold) {
+                    this.currentVideoPlayCount++
+                    if (this.currentVideoPlayCount < this.videoRepeatCount) {
+                        if (e.target) {
+                            e.target.currentTime = 0
+                            e.target.play().catch(() => {})
+                        }
+                        return
+                    }
+                }
+
+                this.nextImage()
             },
 
             nextImage() {

@@ -22,7 +22,10 @@ module.exports = function (context) {
             search_engine: "https://www.google.com/search?q=",
             randomize: false,
             prioritize_videos: false,
-            latest_pin_count: 6
+            latest_pin_count: 6,
+            slide_interval: 7,
+            video_repeat_threshold: 5,
+            video_repeat_count: 3
         };
 
         try {
@@ -54,7 +57,10 @@ module.exports = function (context) {
                     search_engine: record.getString("search_engine") || settings.search_engine,
                     randomize: record.getBool("randomize"),
                     prioritize_videos: record.getBool("prioritize_videos"),
-                    latest_pin_count: record.getInt("latest_pin_count") || 6
+                    latest_pin_count: record.getInt("latest_pin_count") || 6,
+                    slide_interval: record.getInt("slide_interval") || 7,
+                    video_repeat_threshold: record.getInt("video_repeat_threshold") || 5,
+                    video_repeat_count: record.getInt("video_repeat_count") || 3
                 };
             }
         } catch (e) {

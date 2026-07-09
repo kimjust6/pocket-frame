@@ -10,7 +10,7 @@ module.exports = function (context) {
     const flushLogs = () => {
         try {
             $os.writeFile("./loader_log.txt", logs.join("\n"), 0644);
-        } catch (e) {}
+        } catch (e) { }
     };
 
     try {
@@ -37,7 +37,10 @@ module.exports = function (context) {
             search_engine: "https://www.google.com/search?q=",
             randomize: false,
             prioritize_videos: false,
-            latest_pin_count: 6
+            latest_pin_count: 6,
+            slide_interval: 7,
+            video_repeat_threshold: 15,
+            video_repeat_count: 3
         };
 
         try {
@@ -56,7 +59,10 @@ module.exports = function (context) {
                     search_engine: record.getString("search_engine") || settings.search_engine,
                     randomize: record.getBool("randomize"),
                     prioritize_videos: record.getBool("prioritize_videos"),
-                    latest_pin_count: record.getInt("latest_pin_count") || 6
+                    latest_pin_count: record.getInt("latest_pin_count") || 6,
+                    slide_interval: record.getInt("slide_interval") || 7,
+                    video_repeat_threshold: record.getInt("video_repeat_threshold") || 5,
+                    video_repeat_count: record.getInt("video_repeat_count") || 3
                 };
                 log("Loaded settings from DB. search_engine: " + settings.search_engine);
             } else {
@@ -70,7 +76,7 @@ module.exports = function (context) {
         let images = [];
         let statusText = 'Loading slideshow...';
         const shareUrl = settings.search_engine || '';
-        
+
         if (shareUrl) {
             log("Parsing share URL: " + shareUrl);
             const info = parseShareInfo(shareUrl);
@@ -78,14 +84,14 @@ module.exports = function (context) {
                 log("Parsed Share Info successfully: " + JSON.stringify(info));
                 const payload = fetchSharePayload(info.origin, info.shareKey, info.atToken, log);
                 let assetIds = [];
-                
+
                 if (payload) {
                     log("Payload fetched. Keys: " + Object.keys(payload).join(", "));
                     // 1. Try to load direct assets if it's an individual share link
                     const directAssetIds = [];
                     collectAssetIds(payload.assets || [], directAssetIds);
                     log("Direct asset IDs found: " + directAssetIds.length);
-                    
+
                     if (directAssetIds.length > 0) {
                         assetIds = directAssetIds;
                     } else if (payload.album && payload.album.id) {
@@ -93,7 +99,7 @@ module.exports = function (context) {
                         const albumId = payload.album.id;
                         const encodedKey = encodeURIComponent(info.shareKey);
                         const atQuery = info.atToken ? `&at=${encodeURIComponent(info.atToken)}` : '';
-                        
+
                         try {
                             const bucketsUrl = `${info.origin}/api/timeline/buckets?key=${encodedKey}&albumId=${albumId}${atQuery}`;
                             log("Fetching buckets from url: " + bucketsUrl);
@@ -103,7 +109,7 @@ module.exports = function (context) {
                                 headers: { "accept": "application/json" },
                                 timeout: 10
                             });
-                            
+
                             log("Buckets response status: " + bucketsRes.statusCode);
                             if (bucketsRes.statusCode === 200 && bucketsRes.json) {
                                 const buckets = bucketsRes.json;
@@ -124,12 +130,15 @@ module.exports = function (context) {
                                         if (bucketRes.statusCode === 200 && bucketRes.json && Array.isArray(bucketRes.json.id)) {
                                             const ids = bucketRes.json.id;
                                             const isImageArray = bucketRes.json.isImage || [];
+                                            const durationArray = bucketRes.json.duration || [];
                                             const newAssets = [];
                                             for (let i = 0; i < ids.length; i++) {
                                                 const isImg = isImageArray[i] !== false;
+                                                const durMs = durationArray[i] || 0;
                                                 newAssets.push({
                                                     id: ids[i],
-                                                    type: isImg ? 'IMAGE' : 'VIDEO'
+                                                    type: isImg ? 'IMAGE' : 'VIDEO',
+                                                    duration: durMs ? Math.round(durMs / 1000) : 0
                                                 });
                                             }
                                             assetIds = assetIds.concat(newAssets);
@@ -154,7 +163,7 @@ module.exports = function (context) {
                 } else {
                     log("Payload fetch returned null.");
                 }
-                
+
                 if (assetIds.length > 0) {
                     const atQuery = info.atToken ? `&at=${encodeURIComponent(info.atToken)}` : '';
                     const mapped = assetIds.map(asset => {
@@ -165,7 +174,8 @@ module.exports = function (context) {
                         return {
                             url,
                             thumbnailUrl,
-                            type: asset.type
+                            type: asset.type,
+                            duration: asset.duration || 0
                         };
                     });
 
@@ -304,7 +314,7 @@ function parseShareInfo(urlValue) {
     if (!match) return null;
     const origin = match[1];
     const shareKey = match[2];
-    
+
     let atToken = '';
     const atMatch = normalized.match(/[?&]at=([^&]+)/);
     if (atMatch) {
@@ -334,7 +344,8 @@ function collectAssetIds(value, bucket) {
         if (!type || type === 'IMAGE' || type === 'VIDEO') {
             bucket.push({
                 id: value.id,
-                type: type === 'VIDEO' ? 'VIDEO' : 'IMAGE'
+                type: type === 'VIDEO' ? 'VIDEO' : 'IMAGE',
+                duration: value.duration ? Math.round(value.duration) : 0
             })
         }
     }
@@ -349,7 +360,7 @@ function fetchSharePayload(origin, shareKey, atToken, log) {
     const atQuery = atToken
         ? `&at=${encodeURIComponent(atToken)}`
         : ''
-        
+
     const urls = [
         `${origin}/api/shared-links/me?key=${encodedKey}${atQuery}`,
         `${origin}/api/shared-links/${encodedKey}${atToken ? `?at=${encodeURIComponent(atToken)}` : ''}`
