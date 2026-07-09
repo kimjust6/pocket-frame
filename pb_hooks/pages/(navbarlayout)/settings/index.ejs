@@ -38,6 +38,44 @@
                 >Use a full Immich share link. The slideshow page will load
                 images from this URL.</span
             >
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 bg-[color:var(--color-primary)]/5 border border-[color:var(--color-primary)]/10 rounded-lg p-3 items-center">
+                <div class="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        x-model="settings.randomize"
+                        id="randomize"
+                        class="checkbox checkbox-xs checkbox-accent"
+                    />
+                    <label for="randomize" class="text-xs font-semibold cursor-pointer select-none">
+                        Randomize order
+                    </label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        x-model="settings.prioritize_videos"
+                        id="prioritize_videos"
+                        class="checkbox checkbox-xs checkbox-accent"
+                    />
+                    <label for="prioritize_videos" class="text-xs font-semibold cursor-pointer select-none">
+                        Prioritize videos
+                    </label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="latest_pin_count" class="text-xs font-semibold whitespace-nowrap">
+                        Pin newest:
+                    </label>
+                    <input
+                        type="number"
+                        x-model.number="settings.latest_pin_count"
+                        id="latest_pin_count"
+                        min="0"
+                        placeholder="6"
+                        class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-16 bg-transparent text-center"
+                    />
+                    <span class="text-[10px] opacity-60 font-medium">items</span>
+                </div>
+            </div>
         </div>
 
         <div class="divider opacity-10"></div>

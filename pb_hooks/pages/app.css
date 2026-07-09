@@ -1862,6 +1862,11 @@ html::-webkit-scrollbar,
 }
 
 @media (hover:hover) {
+  .checkbox-accent:hover {
+    --tw-border-opacity: 1;
+    border-color: var(--fallback-a,oklch(var(--a)/var(--tw-border-opacity)));
+  }
+
   .label a:hover {
     --tw-text-opacity: 1;
     color: var(--fallback-bc,oklch(var(--bc)/var(--tw-text-opacity)));
@@ -2420,6 +2425,12 @@ html::-webkit-scrollbar,
   margin-top: -1rem;
   margin-bottom: -1rem;
   margin-inline-end: -1rem;
+}
+
+.input-xs[type="number"]::-webkit-inner-spin-button {
+  margin-top: -0.25rem;
+  margin-bottom: -0.25rem;
+  margin-inline-end: -0px;
 }
 
 .input-sm[type="number"]::-webkit-inner-spin-button {
@@ -3169,6 +3180,27 @@ input.tab:checked + .tab-content,
       linear-gradient(0deg, var(--chkbg) 43%, var(--chkfg) 43%, var(--chkfg) 57%, var(--chkbg) 57%);
 }
 
+.checkbox-accent {
+  --chkbg: var(--fallback-a,oklch(var(--a)/1));
+  --chkfg: var(--fallback-ac,oklch(var(--ac)/1));
+  --tw-border-opacity: 1;
+  border-color: var(--fallback-a,oklch(var(--a)/var(--tw-border-opacity)));
+}
+
+.checkbox-accent:focus-visible {
+  outline-color: var(--fallback-a,oklch(var(--a)/1));
+}
+
+.checkbox-accent:checked,
+    .checkbox-accent[aria-checked="true"] {
+  --tw-border-opacity: 1;
+  border-color: var(--fallback-a,oklch(var(--a)/var(--tw-border-opacity)));
+  --tw-bg-opacity: 1;
+  background-color: var(--fallback-a,oklch(var(--a)/var(--tw-bg-opacity)));
+  --tw-text-opacity: 1;
+  color: var(--fallback-ac,oklch(var(--ac)/var(--tw-text-opacity)));
+}
+
 @keyframes checkmark {
   0% {
     background-position-y: 5px;
@@ -3892,6 +3924,20 @@ input.tab:checked + .tab-content,
   padding: 0px;
 }
 
+[type="checkbox"].checkbox-xs {
+  height: 1rem;
+  width: 1rem;
+}
+
+.input-xs {
+  height: 1.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  line-height: 1.625;
+}
+
 .input-sm {
   height: 2rem;
   padding-left: 0.75rem;
@@ -4407,6 +4453,10 @@ input.tab:checked + .tab-content,
   width: 3.5rem;
 }
 
+.w-16 {
+  width: 4rem;
+}
+
 .w-20 {
   width: 5rem;
 }
@@ -4679,6 +4729,10 @@ input.tab:checked + .tab-content,
   white-space: nowrap;
 }
 
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+
 .rounded {
   border-radius: 0.25rem;
 }
@@ -4937,6 +4991,10 @@ input.tab:checked + .tab-content,
 
 .p-2 {
   padding: 0.5rem;
+}
+
+.p-3 {
+  padding: 0.75rem;
 }
 
 .p-4 {

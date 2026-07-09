@@ -34,7 +34,10 @@ module.exports = function (context) {
             weather_lat: "43.6532",
             weather_lon: "-79.3832",
             weather_unit: "celsius",
-            search_engine: "https://www.google.com/search?q="
+            search_engine: "https://www.google.com/search?q=",
+            randomize: false,
+            prioritize_videos: false,
+            latest_pin_count: 6
         };
 
         try {
@@ -50,7 +53,10 @@ module.exports = function (context) {
                     weather_lat: record.getString("weather_lat") || settings.weather_lat,
                     weather_lon: record.getString("weather_lon") || settings.weather_lon,
                     weather_unit: record.getString("weather_unit") || settings.weather_unit,
-                    search_engine: record.getString("search_engine") || settings.search_engine
+                    search_engine: record.getString("search_engine") || settings.search_engine,
+                    randomize: record.getBool("randomize"),
+                    prioritize_videos: record.getBool("prioritize_videos"),
+                    latest_pin_count: record.getInt("latest_pin_count") || 6
                 };
                 log("Loaded settings from DB. search_engine: " + settings.search_engine);
             } else {
@@ -151,7 +157,7 @@ module.exports = function (context) {
                 
                 if (assetIds.length > 0) {
                     const atQuery = info.atToken ? `&at=${encodeURIComponent(info.atToken)}` : '';
-                    images = assetIds.map(asset => {
+                    const mapped = assetIds.map(asset => {
                         const thumbnailUrl = `${info.origin}/api/assets/${asset.id}/thumbnail?key=${encodeURIComponent(info.shareKey)}&size=preview${atQuery}`;
                         const url = asset.type === 'VIDEO'
                             ? `${info.origin}/api/assets/${asset.id}/video/playback?key=${encodeURIComponent(info.shareKey)}${atQuery}`
@@ -162,8 +168,57 @@ module.exports = function (context) {
                             type: asset.type
                         };
                     });
+
+                    let videos = mapped.filter(x => x.type === 'VIDEO');
+                    let photos = mapped.filter(x => x.type !== 'VIDEO');
+
+                    function biasedShuffle(array) {
+                        const len = array.length;
+                        if (len <= 1) return;
+                        const itemsWithScore = array.map((item, index) => {
+                            // index 0 is newest, index len-1 is oldest.
+                            // Adding (1 - index/len) * 0.5 creates a moderate bias towards newer photos.
+                            const score = Math.random() + (1 - index / len) * 0.5;
+                            return { item, score };
+                        });
+                        itemsWithScore.sort((a, b) => b.score - a.score);
+                        for (let i = 0; i < len; i++) {
+                            array[i] = itemsWithScore[i].item;
+                        }
+                    }
+
+                    const pinCount = settings.latest_pin_count;
+                    if (mapped.length > pinCount) {
+                        const pinned = mapped.slice(0, pinCount);
+                        const rest = mapped.slice(pinCount);
+
+                        if (settings.prioritize_videos) {
+                            let restVideos = rest.filter(x => x.type === 'VIDEO');
+                            let restPhotos = rest.filter(x => x.type !== 'VIDEO');
+                            if (settings.randomize) {
+                                biasedShuffle(restVideos);
+                                biasedShuffle(restPhotos);
+                            }
+                            images = pinned.concat(restVideos.concat(restPhotos));
+                        } else if (settings.randomize) {
+                            biasedShuffle(rest);
+                            images = pinned.concat(rest);
+                        } else {
+                            images = mapped;
+                        }
+                    } else {
+                        // If total media count is less than or equal to pinCount, all are pinned
+                        if (settings.prioritize_videos) {
+                            let videos = mapped.filter(x => x.type === 'VIDEO');
+                            let photos = mapped.filter(x => x.type !== 'VIDEO');
+                            images = videos.concat(photos);
+                        } else {
+                            images = mapped;
+                        }
+                    }
+
                     statusText = `Loaded ${images.length} item${images.length === 1 ? '' : 's'} from Immich.`;
-                    log("Successfully loaded " + images.length + " media items.");
+                    log("Successfully loaded " + images.length + " media items (randomize: " + settings.randomize + ", prioritize_videos: " + settings.prioritize_videos + ").");
                 } else {
                     // Try og:image fallback
                     log("No assets found. Trying OG image fallback...");
