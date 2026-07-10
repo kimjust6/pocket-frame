@@ -26,6 +26,7 @@
                             alt=""
                             class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
                             loading="lazy"
+                            referrerpolicy="no-referrer"
                         />
                         <!-- Foreground Image -->
                         <template x-if="img.type === 'IMAGE'">
@@ -34,6 +35,7 @@
                                 alt="Immich slideshow image"
                                 class="relative h-full w-full object-contain z-10"
                                 loading="lazy"
+                                referrerpolicy="no-referrer"
                             />
                         </template>
                         <!-- Foreground Video -->
@@ -49,6 +51,7 @@
                                 @canplay="if (idx === currentIndex) { const v = $event.target; v.muted = true; setTimeout(() => { v.play().then(() => { v.muted = false }).catch(() => { v.muted = false }) }, 150) }"
                                 @ended="onVideoEnded($event)"
                                 class="relative h-full w-full object-contain z-10 pointer-events-auto"
+                                referrerpolicy="no-referrer"
                             ></video>
                         </template>
                     </div>
@@ -232,8 +235,8 @@
                 if (this.images.length > 0) {
                     this.onSlideChanged()
                 } else {
-                    this.emptyMessage = 'Could not read images from the share URL. Check URL validity and cross-origin permissions.'
-                    this.showToast('Failed to load images from Immich share URL.', 'error')
+                    this.emptyMessage = 'No images loaded. Check that your share URL is valid and the photo server is reachable.'
+                    this.showToast('Failed to load photos from share URL. Check the server logs for details.', 'error')
                 }
             },
 

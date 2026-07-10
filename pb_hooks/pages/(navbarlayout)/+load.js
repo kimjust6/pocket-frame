@@ -490,12 +490,72 @@ function parseAmazonShare(urlValue) {
 
 function fetchAmazonPhotos(origin, shareId, log) {
     const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-    const headers = {
+    const baseHeaders = {
         "accept": "application/json",
         "user-agent": userAgent
     };
 
     try {
+        // Step 1: Warm the session by visiting the share page. Amazon's drive API returns
+        // 503 inconsistently when called without a session context (session-id cookies).
+        // Visiting the share page first causes Amazon to return these cookies, which we
+        // then pass to all subsequent drive API calls for a reliable 200 response.
+        log("fetchAmazonPhotos: warming session by visiting share page...");
+        const sharePageUrl = `${origin}/photos/share/${shareId}?sort=sortOldestToNewest`;
+        const sharePageRes = $http.send({
+            url: sharePageUrl,
+            method: "GET",
+            headers: { "user-agent": userAgent, "accept": "text/html" },
+            timeout: 10
+        });
+        log("fetchAmazonPhotos sharePageRes status: " + sharePageRes.statusCode);
+
+        // Build Cookie header from session cookies returned by the share page.
+        // PocketBase JSVM may expose cookies via res.cookies[] or via res.headers['set-cookie'].
+        // Try both approaches for robustness.
+        let cookieHeader = "";
+        const cookieLog = "cookies type=" + typeof sharePageRes.cookies +
+            " len=" + (sharePageRes.cookies ? sharePageRes.cookies.length : "null");
+        log("fetchAmazonPhotos cookie debug: " + cookieLog);
+
+        if (sharePageRes.cookies && sharePageRes.cookies.length > 0) {
+            const firstCookie = sharePageRes.cookies[0];
+            log("fetchAmazonPhotos first cookie keys: " + Object.keys(firstCookie || {}).join(","));
+            // Try lowercase name/value (PocketBase JSVM standard)
+            if (firstCookie.name) {
+                cookieHeader = sharePageRes.cookies.map(c => `${c.name}=${c.value}`).join("; ");
+            } else if (firstCookie.Name) {
+                // Capitalized (Go-style)
+                cookieHeader = sharePageRes.cookies.map(c => `${c.Name}=${c.Value}`).join("; ");
+            }
+        }
+
+        // Fallback: parse Set-Cookie from headers directly
+        if (!cookieHeader) {
+            const setCookie = sharePageRes.headers && (
+                sharePageRes.headers["set-cookie"] ||
+                sharePageRes.headers["Set-Cookie"]
+            );
+            if (setCookie) {
+                // Parse "name=value; ..." from each Set-Cookie header
+                const rawHeaders = Array.isArray(setCookie) ? setCookie : [setCookie];
+                cookieHeader = rawHeaders.map(h => h.split(";")[0].trim()).join("; ");
+                log("fetchAmazonPhotos cookies from headers: " + cookieHeader);
+            }
+        }
+
+        if (cookieHeader) {
+            log("fetchAmazonPhotos session cookies built: " + cookieHeader);
+        } else {
+            log("fetchAmazonPhotos WARNING: no session cookies found, proceeding without them");
+        }
+
+        // Step 2: Build authenticated headers (including session cookies)
+        const headers = Object.assign({}, baseHeaders);
+        if (cookieHeader) {
+            headers["cookie"] = cookieHeader;
+        }
+
         log("fetchAmazonPhotos: fetching shareInfo for ID: " + shareId);
         const shareUrl = `${origin}/drive/v1/shares/${shareId}?shareId=${shareId}&resourceVersion=V2&ContentType=JSON`;
         const shareRes = $http.send({
@@ -556,8 +616,13 @@ function fetchAmazonPhotos(origin, shareId, log) {
             if (node.status === "AVAILABLE" && node.tempLink) {
                 const isVideo = node.contentProperties && node.contentProperties.contentType && node.contentProperties.contentType.startsWith("video/");
                 const type = isVideo ? "VIDEO" : "IMAGE";
-                const url = `${node.tempLink}?shareId=${shareId}`;
-                const thumbnailUrl = `${node.tempLink}?shareId=${shareId}&viewBox=500`;
+                // Resolve the CDN proxy tempLink to the direct presigned URL.
+                // The CDN proxy (/cdproxy/templink/) has hotlink protection and blocks browser
+                // requests that include a Referer header. The presigned URL (/v2/download/presigned/)
+                // uses the same key but has no such restrictions (it's self-authenticating).
+                const presignedLink = node.tempLink.replace("/cdproxy/templink/", "/v2/download/presigned/");
+                const url = `${presignedLink}?shareId=${shareId}`;
+                const thumbnailUrl = url; // presigned URLs don't support viewBox resizing
                 images.push({
                     url,
                     thumbnailUrl,
