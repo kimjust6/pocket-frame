@@ -2,6 +2,13 @@
  * Loader for the homepage startpage dashboard.
  * @type {import('pocketpages').PageDataLoaderFunc}
  */
+
+// Module-level in-memory cache for Amazon Photos results.
+// Persists across requests within the same server process, so Amazon's API
+// is only called when the cache is stale (>30 mins) or missing.
+// When Amazon's API returns 503, we fall back to the stale cache.
+const _amazonPhotosCacheMap = {};
+
 module.exports = function (context) {
     const logs = [];
     const log = (msg) => {
@@ -205,15 +212,42 @@ module.exports = function (context) {
             const amazonInfo = parseAmazonShare(settings.fallback_url);
             if (amazonInfo) {
                 log("Parsed Amazon Share Info successfully: " + JSON.stringify(amazonInfo));
-                const amazonPayload = fetchAmazonPhotos(amazonInfo.origin, amazonInfo.shareId, log);
-                if (amazonPayload && amazonPayload.images && amazonPayload.images.length > 0) {
-                    rawAssets = amazonPayload.images;
-                    albumName = amazonPayload.albumName;
-                    statusText = `Loaded ${rawAssets.length} item${rawAssets.length === 1 ? '' : 's'} from Amazon Photos.`;
-                    log("Successfully loaded " + rawAssets.length + " items from Amazon Photos.");
+
+                const cacheKey = amazonInfo.shareId;
+                const cached = _amazonPhotosCacheMap[cacheKey];
+                const now = Date.now();
+                const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+                // Use fresh cache if available
+                if (cached && cached.expiresAt > now && cached.images && cached.images.length > 0) {
+                    rawAssets = cached.images;
+                    albumName = cached.albumName || "Amazon Photos";
+                    statusText = `Loaded ${rawAssets.length} items from Amazon Photos (cached).`;
+                    log("Using fresh cached Amazon Photos data (" + rawAssets.length + " items, expires " + new Date(cached.expiresAt).toISOString() + ")");
                 } else {
-                    statusText = 'Unable to load images from Amazon Photos fallback.';
-                    log("fetchAmazonPhotos returned empty or null.");
+                    // Attempt live fetch from Amazon Photos API
+                    const amazonPayload = fetchAmazonPhotos(amazonInfo.origin, amazonInfo.shareId, log);
+                    if (amazonPayload && amazonPayload.images && amazonPayload.images.length > 0) {
+                        rawAssets = amazonPayload.images;
+                        albumName = amazonPayload.albumName;
+                        statusText = `Loaded ${rawAssets.length} item${rawAssets.length === 1 ? '' : 's'} from Amazon Photos.`;
+                        log("Successfully loaded " + rawAssets.length + " items from Amazon Photos. Caching result.");
+                        // Store in cache
+                        _amazonPhotosCacheMap[cacheKey] = {
+                            images: rawAssets,
+                            albumName: albumName,
+                            expiresAt: now + CACHE_TTL_MS
+                        };
+                    } else if (cached && cached.images && cached.images.length > 0) {
+                        // Live fetch failed - use stale cache as last resort
+                        rawAssets = cached.images;
+                        albumName = cached.albumName || "Amazon Photos";
+                        statusText = `Loaded ${rawAssets.length} items from Amazon Photos (stale cache - API temporarily unavailable).`;
+                        log("Live fetch failed, using stale cached Amazon Photos data (" + rawAssets.length + " items)");
+                    } else {
+                        statusText = 'Unable to load images from Amazon Photos fallback.';
+                        log("fetchAmazonPhotos returned empty or null and no cache available.");
+                    }
                 }
             } else {
                 statusText = 'Invalid Amazon Photos fallback URL configured.';
