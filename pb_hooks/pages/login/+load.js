@@ -11,5 +11,7 @@ module.exports = function (context) {
         return
     }
 
-    return {}
+    return {
+        isLogin: true
+    }
 }
