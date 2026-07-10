@@ -130,14 +130,22 @@ export type BookmarksRecord = {
 }
 
 export type FlameSettingsRecord = {
+	autoplay_fullscreen?: boolean
 	color_accent?: string
 	color_background?: string
 	color_primary?: string
 	created: IsoAutoDateString
+	fallback_url?: string
 	id: string
+	latest_pin_count?: number
+	prioritize_videos?: boolean
+	randomize?: boolean
 	search_engine?: string
+	slide_interval?: number
 	updated: IsoAutoDateString
 	user?: RecordIdString
+	video_repeat_count?: number
+	video_repeat_threshold?: number
 	weather_lat?: string
 	weather_lon?: string
 	weather_unit?: string
