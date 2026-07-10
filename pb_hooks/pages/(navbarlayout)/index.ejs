@@ -46,7 +46,7 @@
                                 autoplay
                                 playsinline
                                 controls
-                                @canplay="if (idx === currentIndex) { const v = $event.target; v.muted = true; v.play().then(() => { v.muted = false }).catch(() => { v.muted = false }) }"
+                                @canplay="if (idx === currentIndex) { const v = $event.target; v.muted = true; setTimeout(() => { v.play().then(() => { v.muted = false }).catch(() => { v.muted = false }) }, 150) }"
                                 @ended="onVideoEnded($event)"
                                 class="relative h-full w-full object-contain z-10 pointer-events-auto"
                             ></video>
@@ -222,6 +222,7 @@
             swipeOffset: 0,
             isSwiping: false,
             shouldAnimate: false,
+            isFirstLoad: true,
 
             init() {
                 this.keepControlsAlive()
@@ -328,10 +329,18 @@
                     videoElements.forEach((video) => {
                         const idx = parseInt(video.id.replace('video-', ''))
                         if (idx === this.currentIndex) {
-                            video.currentTime = 0
-                            video.play().catch(() => {})
+                            if (video.paused) {
+                                video.currentTime = 0
+                                setTimeout(() => {
+                                    if (idx === this.currentIndex && video.paused) {
+                                        video.play().catch(() => {})
+                                    }
+                                }, 150)
+                            }
                         } else {
-                            video.pause()
+                            if (!video.paused) {
+                                video.pause()
+                            }
                         }
                     })
                 }
@@ -349,9 +358,14 @@
                     // We don't start the standard image slide timer.
                 } else {
                     // Start timer for standard image slides
+                    let interval = this.slideIntervalMs
+                    if (this.isFirstLoad) {
+                        interval *= 2
+                        this.isFirstLoad = false
+                    }
                     this.slideTimerId = setInterval(
                         () => this.nextImage(),
-                        this.slideIntervalMs
+                        interval
                     )
                 }
             },
@@ -365,7 +379,11 @@
                     if (this.currentVideoPlayCount < this.videoRepeatCount) {
                         if (e.target) {
                             e.target.currentTime = 0
-                            e.target.play().catch(() => {})
+                            setTimeout(() => {
+                                if (e.target.paused) {
+                                    e.target.play().catch(() => {})
+                                }
+                            }, 150)
                         }
                         return
                     }
@@ -376,12 +394,14 @@
 
             nextImage() {
                 if (this.images.length <= 1) return
+                this.isFirstLoad = false
                 this.currentIndex = (this.currentIndex + 1) % this.images.length
                 this.onSlideChanged()
             },
 
             prevImage() {
                 if (this.images.length <= 1) return
+                this.isFirstLoad = false
                 this.currentIndex =
                     (this.currentIndex - 1 + this.images.length) %
                     this.images.length
