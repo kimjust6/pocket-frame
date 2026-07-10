@@ -58,7 +58,7 @@ module.exports = function (context) {
             },
             {
                 name: 'description',
-                content: "Your self-hosted startpage and bookmarks manager.",
+                content: "Your self-hosted photo frame and slideshow manager.",
             },
             { name: 'url', content: BASE_URL },
 
@@ -78,7 +78,7 @@ module.exports = function (context) {
             { name: 'og:image:height', content: '425' },
             {
                 name: 'og:description',
-                content: "Your self-hosted startpage and bookmarks manager.",
+                content: "Your self-hosted photo frame and slideshow manager.",
             },
             { name: 'og:site_name', content: 'Pocket Frame' },
             { name: 'og:locale', content: 'en_US' },
@@ -92,7 +92,7 @@ module.exports = function (context) {
             },
             {
                 name: 'twitter:description',
-                content: "Your self-hosted startpage and bookmarks manager.",
+                content: "Your self-hosted photo frame and slideshow manager.",
             },
             {
                 name: 'twitter:image',

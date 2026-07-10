@@ -34,8 +34,30 @@ export default {
                     "error": "#dd2e2eff",             // Red (Darker)
                     "error-content": "#1C1917",
                 },
+                bumblebee: {
+                    "primary": "#EAB308",          // Yellow
+                    "primary-content": "#1C1917",   // Dark text on primary
+                    "secondary": "#E4B159",         // Amber
+                    "secondary-content": "#1C1917",
+                    "accent": "#FACC15",            // Yellow accent
+                    "accent-content": "#1C1917",
+                    "neutral": "#1C1917",           // Dark text
+                    "neutral-content": "#FAF8F0",
+                    "base-100": "#FAF6EC",          // Warm cream/beige background from screenshot
+                    "base-200": "#F1EFE0",          // Slightly darker
+                    "base-300": "#E8E5D3",          // Even darker
+                    "base-content": "#1C1917",      // Dark charcoal text
+                    "info": "#38BDF8",
+                    "info-content": "#1C1917",
+                    "success": "#4ADE80",
+                    "success-content": "#1C1917",
+                    "warning": "#FB923C",
+                    "warning-content": "#1C1917",
+                    "error": "#dd2e2eff",
+                    "error-content": "#1C1917",
+                },
             },
-            'light', 'dark', 'cupcake', 'bumblebee', 'emerald', 'corporate', 'synthwave', 'retro', 'cyberpunk', 'valentine', 'halloween', 'garden', 'forest', 'aqua', 'lofi', 'pastel', 'fantasy', 'wireframe', 'black', 'luxury', 'dracula', 'cmyk', 'autumn', 'business', 'acid', 'lemonade', 'night', 'coffee', 'winter', 'dim', 'nord', 'sunset'
+            'light', 'dark', 'cupcake', 'emerald', 'corporate', 'synthwave', 'retro', 'cyberpunk', 'valentine', 'halloween', 'garden', 'forest', 'aqua', 'lofi', 'pastel', 'fantasy', 'wireframe', 'black', 'luxury', 'dracula', 'cmyk', 'autumn', 'business', 'acid', 'lemonade', 'night', 'coffee', 'winter', 'dim', 'nord', 'sunset'
         ],
         darkTheme: 'yellowdark',
         base: true,

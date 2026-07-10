@@ -688,6 +688,38 @@ html {
   --erc: 21.6115% 0.006126 56.043375;
 }
 
+[data-theme=bumblebee] {
+  --p: 79.5243% 0.161668 86.046788;
+  --rounded-box: 1rem;
+  --rounded-btn: 0.5rem;
+  --rounded-badge: 1.9rem;
+  --animation-btn: 0.25s;
+  --animation-input: .2s;
+  --btn-focus-scale: 0.95;
+  --border-btn: 1px;
+  --tab-border: 1px;
+  --tab-radius: 0.5rem;
+  --pc: 21.6115% 0.006126 56.043375;
+  --s: 78.992% 0.121027 79.115148;
+  --sc: 21.6115% 0.006126 56.043375;
+  --a: 86.0559% 0.173115 91.935651;
+  --ac: 21.6115% 0.006126 56.043375;
+  --n: 21.6115% 0.006126 56.043375;
+  --nc: 97.847% 0.010771 95.161555;
+  --b1: 97.3502% 0.013888 88.682506;
+  --b2: 94.9618% 0.019965 100.587237;
+  --b3: 91.9392% 0.024179 99.124171;
+  --bc: 21.6115% 0.006126 56.043375;
+  --in: 75.3513% 0.138989 232.66148;
+  --inc: 21.6115% 0.006126 56.043375;
+  --su: 80.0349% 0.18206 151.711031;
+  --suc: 21.6115% 0.006126 56.043375;
+  --wa: 75.764% 0.159037 55.934415;
+  --wac: 21.6115% 0.006126 56.043375;
+  --er: 58.4938% 0.210256 26.713505;
+  --erc: 21.6115% 0.006126 56.043375;
+}
+
 [data-theme=light] {
   color-scheme: light;
   --in: 72.06% 0.191 231.6;
@@ -785,39 +817,6 @@ html {
   --rounded-btn: 1.9rem;
   --tab-border: 2px;
   --tab-radius: 0.7rem;
-}
-
-[data-theme=bumblebee] {
-  color-scheme: light;
-  --b2: 93% 0 0;
-  --b3: 86% 0 0;
-  --in: 72.06% 0.191 231.6;
-  --su: 64.8% 0.150 160;
-  --wa: 84.71% 0.199 83.87;
-  --er: 71.76% 0.221 22.18;
-  --bc: 20% 0 0;
-  --ac: 16.254% 0.0314 56.52;
-  --nc: 82.55% 0.015 281.99;
-  --inc: 0% 0 0;
-  --suc: 0% 0 0;
-  --wac: 0% 0 0;
-  --erc: 0% 0 0;
-  --rounded-box: 1rem;
-  --rounded-btn: 0.5rem;
-  --rounded-badge: 1.9rem;
-  --animation-btn: 0.25s;
-  --animation-input: .2s;
-  --btn-focus-scale: 0.95;
-  --border-btn: 1px;
-  --tab-border: 1px;
-  --tab-radius: 0.5rem;
-  --p: 89.51% 0.2132 96.61;
-  --pc: 38.92% 0.046 96.61;
-  --s: 80.39% 0.194 70.76;
-  --sc: 39.38% 0.068 70.76;
-  --a: 81.27% 0.157 56.52;
-  --n: 12.75% 0.075 281.99;
-  --b1: 100% 0 0;
 }
 
 [data-theme=emerald] {
@@ -5718,8 +5717,8 @@ input.tab:checked + .tab-content,
 }
 
 [data-theme="bumblebee"] .text-brand-link {
-  color: #8c5d00 !important;
-  /* high-contrast dark golden brown on light base card */
+  color: #EAB308 !important;
+  /* vibrant brand yellow on light */
 }
 
 .hover\:bg-brand-link-hover:hover {
@@ -5731,7 +5730,7 @@ input.tab:checked + .tab-content,
 }
 
 [data-theme="bumblebee"] .hover\:bg-brand-link-hover:hover {
-  background-color: rgba(140, 93, 0, 0.15) !important;
+  background-color: rgba(234, 179, 8, 0.15) !important;
 }
 
 .\[\&_a\]\:btn a {
@@ -6401,9 +6400,9 @@ input.tab:checked + .tab-content,
     align-self: auto;
   }
 
-  .sm\:py-10 {
-    padding-top: 2.5rem;
-    padding-bottom: 2.5rem;
+  .sm\:py-5 {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
   }
 }
 

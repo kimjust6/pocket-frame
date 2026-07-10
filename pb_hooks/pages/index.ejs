@@ -70,11 +70,11 @@
     <section class="mb-12" x-show="filterBookmarks().length > 0" x-transition>
         <div class="flex justify-between items-center mb-6">
             <div class="flex items-center gap-3">
-                <h2 class="text-xs font-bold tracking-widest uppercase opacity-55">Bookmarks</h2>
-                <button @click="openBookmarkModal()" class="w-5 h-5 rounded-full flex items-center justify-center bg-[color:var(--color-accent)] text-[color:var(--color-background)] hover:scale-110 transition-transform text-xs font-black shadow-sm" title="Add Bookmark" :disabled="categories.length === 0">+</button>
+                <h2 class="text-xs font-bold tracking-widest uppercase opacity-55">Albums</h2>
+                <button @click="openBookmarkModal()" class="w-5 h-5 rounded-full flex items-center justify-center bg-[color:var(--color-accent)] text-[color:var(--color-background)] hover:scale-110 transition-transform text-xs font-black shadow-sm" title="Add Album" :disabled="categories.length === 0">+</button>
                 <button @click="openCategoryModal()" class="btn btn-ghost btn-xs text-[color:var(--color-accent)] hover:bg-transparent font-medium border border-[color:var(--color-accent)]/20 hover:border-[color:var(--color-accent)] rounded-lg text-[10px]" title="Add Category">+ Category</button>
             </div>
-            <a href="/settings?tab=bookmarks" class="text-xs opacity-50 hover:opacity-100 hover:text-[color:var(--color-accent)] transition-all">Manage</a>
+            <a href="/settings" class="text-xs opacity-50 hover:opacity-100 hover:text-[color:var(--color-accent)] transition-all">Manage</a>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <template x-for="cat in filterBookmarks()" :key="cat.id">
@@ -98,10 +98,10 @@
 
     <!-- Empty State for Bookmarks -->
     <div x-show="bookmarksByCategory.length === 0" class="text-center py-12 border border-dashed border-[color:var(--color-primary)]/10 rounded-xl mb-12">
-        <p class="text-sm opacity-50 mb-3">No bookmarks configured yet.</p>
+        <p class="text-sm opacity-50 mb-3">No albums configured yet.</p>
         <div class="flex justify-center gap-2">
             <button @click="openCategoryModal()" class="btn btn-xs btn-outline border-[color:var(--color-accent)] text-[color:var(--color-accent)] hover:bg-[color:var(--color-accent)] hover:text-[color:var(--color-background)]">Add Category</button>
-            <button @click="openBookmarkModal()" class="btn btn-xs btn-outline border-[color:var(--color-accent)] text-[color:var(--color-accent)] hover:bg-[color:var(--color-accent)] hover:text-[color:var(--color-background)]" :disabled="categories.length === 0">Add Bookmark</button>
+            <button @click="openBookmarkModal()" class="btn btn-xs btn-outline border-[color:var(--color-accent)] text-[color:var(--color-accent)] hover:bg-[color:var(--color-accent)] hover:text-[color:var(--color-background)]" :disabled="categories.length === 0">Add Album</button>
         </div>
     </div>
 
@@ -154,7 +154,7 @@
     <!-- MODAL: ADD CATEGORY -->
     <dialog class="modal backdrop-blur-sm" :class="{ 'modal-open': categoryModalOpen }">
         <div class="modal-box bg-[color:var(--color-background)] border border-[color:var(--color-primary)]/20 text-[color:var(--color-primary)] max-w-sm p-6 rounded-xl shadow-2xl">
-            <h3 class="font-bold text-base text-[color:var(--color-accent)] mb-4">Add Bookmark Category</h3>
+            <h3 class="font-bold text-base text-[color:var(--color-accent)] mb-4">Add Album Category</h3>
             
             <div class="space-y-4 text-xs">
                 <div>
@@ -177,7 +177,7 @@
     <!-- MODAL: ADD BOOKMARK -->
     <dialog class="modal backdrop-blur-sm" :class="{ 'modal-open': bookmarkModalOpen }">
         <div class="modal-box bg-[color:var(--color-background)] border border-[color:var(--color-primary)]/20 text-[color:var(--color-primary)] max-w-md p-6 rounded-xl shadow-2xl">
-            <h3 class="font-bold text-base text-[color:var(--color-accent)] mb-4">Add Bookmark Link</h3>
+            <h3 class="font-bold text-base text-[color:var(--color-accent)] mb-4">Add Album</h3>
             
             <div class="space-y-4 text-xs">
                 <div>
@@ -208,7 +208,7 @@
 
             <div class="modal-action flex justify-end gap-2 mt-6">
                 <button @click="bookmarkModalOpen = false" class="btn btn-sm btn-ghost">Cancel</button>
-                <button @click="saveBookmark()" class="btn btn-sm btn-accent text-[color:var(--color-background)] font-bold">Save Bookmark</button>
+                <button @click="saveBookmark()" class="btn btn-sm btn-accent text-[color:var(--color-background)] font-bold">Save Album</button>
             </div>
         </div>
     </dialog>

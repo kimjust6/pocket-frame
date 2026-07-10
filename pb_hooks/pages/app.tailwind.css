@@ -164,7 +164,7 @@
     color: #FACC15 !important; /* vibrant brand yellow on dark */
 }
 [data-theme="bumblebee"] .text-brand-link {
-    color: #8c5d00 !important; /* high-contrast dark golden brown on light base card */
+    color: #EAB308 !important; /* vibrant brand yellow on light */
 }
 
 .hover\:bg-brand-link-hover:hover {
@@ -174,5 +174,5 @@
     background-color: rgba(250, 204, 21, 0.1) !important;
 }
 [data-theme="bumblebee"] .hover\:bg-brand-link-hover:hover {
-    background-color: rgba(140, 93, 0, 0.15) !important;
+    background-color: rgba(234, 179, 8, 0.15) !important;
 }
