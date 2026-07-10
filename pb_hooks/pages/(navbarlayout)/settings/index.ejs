@@ -40,6 +40,21 @@
             >
         </div>
 
+        <div>
+            <label class="mb-2 block text-xs font-semibold uppercase opacity-60"
+                >Amazon Photos Fallback URL</label
+            >
+            <input
+                type="text"
+                x-model="settings.fallback_url"
+                placeholder="https://www.amazon.ca/photos/share/..."
+                class="border-[color:var(--color-primary)]/10 input input-sm input-bordered w-full bg-transparent"
+            />
+            <span class="mt-1 block text-[10px] opacity-50"
+                >Optional Amazon Photos share link to use as a fallback in the event that Immich is offline or down.</span
+            >
+        </div>
+
         <div class="divider opacity-10"></div>
 
         <h2 class="text-base font-bold text-[color:var(--color-accent)]">
@@ -299,9 +314,19 @@
                         return;
                     }
 
+                    let normalizedFallbackUrl = '';
+                    if (this.settings.fallback_url && this.settings.fallback_url.trim()) {
+                        normalizedFallbackUrl = this.normalizeHttpUrl(this.settings.fallback_url);
+                        if (!normalizedFallbackUrl) {
+                            this.showToast('Please enter a valid Amazon Photos fallback URL.', 'warning');
+                            return;
+                        }
+                    }
+
                     await this.pb.collection('flame_settings').update(this.settings.id, {
                         ...this.settings,
                         search_engine: normalizedShareUrl,
+                        fallback_url: normalizedFallbackUrl,
                         user: this.userId
                     });
                     this.showToast('Settings updated successfully!', 'success', 1200);

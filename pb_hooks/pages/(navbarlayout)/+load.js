@@ -35,6 +35,7 @@ module.exports = function (context) {
             weather_lon: "-79.3832",
             weather_unit: "celsius",
             search_engine: "https://www.google.com/search?q=",
+            fallback_url: "",
             randomize: false,
             prioritize_videos: false,
             latest_pin_count: 6,
@@ -58,6 +59,7 @@ module.exports = function (context) {
                     weather_lon: record.getString("weather_lon") || settings.weather_lon,
                     weather_unit: record.getString("weather_unit") || settings.weather_unit,
                     search_engine: record.getString("search_engine") || settings.search_engine,
+                    fallback_url: record.getString("fallback_url") || settings.fallback_url,
                     randomize: record.getBool("randomize"),
                     prioritize_videos: record.getBool("prioritize_videos"),
                     latest_pin_count: record.getInt("latest_pin_count") || 6,
@@ -75,6 +77,7 @@ module.exports = function (context) {
         }
 
         // Fetch Immich share payload on backend to bypass CORS
+        let rawAssets = [];
         let images = [];
         let statusText = 'Loading slideshow...';
         let albumName = '';
@@ -172,7 +175,7 @@ module.exports = function (context) {
 
                 if (assetIds.length > 0) {
                     const atQuery = info.atToken ? `&at=${encodeURIComponent(info.atToken)}` : '';
-                    const mapped = assetIds.map(asset => {
+                    rawAssets = assetIds.map(asset => {
                         const thumbnailUrl = `${info.origin}/api/assets/${asset.id}/thumbnail?key=${encodeURIComponent(info.shareKey)}&size=preview${atQuery}`;
                         const url = asset.type === 'VIDEO'
                             ? `${info.origin}/api/assets/${asset.id}/video/playback?key=${encodeURIComponent(info.shareKey)}${atQuery}`
@@ -184,77 +187,101 @@ module.exports = function (context) {
                             duration: asset.duration || 0
                         };
                     });
-
-                    let videos = mapped.filter(x => x.type === 'VIDEO');
-                    let photos = mapped.filter(x => x.type !== 'VIDEO');
-
-                    function biasedShuffle(array) {
-                        const len = array.length;
-                        if (len <= 1) return;
-                        const itemsWithScore = array.map((item, index) => {
-                            // index 0 is newest, index len-1 is oldest.
-                            // Adding (1 - index/len) * 0.5 creates a moderate bias towards newer photos.
-                            const score = Math.random() + (1 - index / len) * 0.5;
-                            return { item, score };
-                        });
-                        itemsWithScore.sort((a, b) => b.score - a.score);
-                        for (let i = 0; i < len; i++) {
-                            array[i] = itemsWithScore[i].item;
-                        }
-                    }
-
-                    const pinCount = settings.latest_pin_count;
-                    if (mapped.length > pinCount) {
-                        const pinned = mapped.slice(0, pinCount);
-                        const rest = mapped.slice(pinCount);
-
-                        if (settings.prioritize_videos) {
-                            let restVideos = rest.filter(x => x.type === 'VIDEO');
-                            let restPhotos = rest.filter(x => x.type !== 'VIDEO');
-                            if (settings.randomize) {
-                                biasedShuffle(restVideos);
-                                biasedShuffle(restPhotos);
-                            }
-                            images = pinned.concat(restVideos.concat(restPhotos));
-                        } else if (settings.randomize) {
-                            biasedShuffle(rest);
-                            images = pinned.concat(rest);
-                        } else {
-                            images = mapped;
-                        }
-                    } else {
-                        // If total media count is less than or equal to pinCount, all are pinned
-                        if (settings.prioritize_videos) {
-                            let videos = mapped.filter(x => x.type === 'VIDEO');
-                            let photos = mapped.filter(x => x.type !== 'VIDEO');
-                            images = videos.concat(photos);
-                        } else {
-                            images = mapped;
-                        }
-                    }
-
-                    statusText = `Loaded ${images.length} item${images.length === 1 ? '' : 's'} from Immich.`;
-                    log("Successfully loaded " + images.length + " media items (randomize: " + settings.randomize + ", prioritize_videos: " + settings.prioritize_videos + ").");
+                    statusText = `Loaded ${rawAssets.length} item${rawAssets.length === 1 ? '' : 's'} from Immich.`;
+                    log("Successfully loaded " + rawAssets.length + " items from Immich.");
                 } else {
-                    // Try og:image fallback
-                    log("No assets found. Trying OG image fallback...");
-                    const fallback = fetchOgImageFallback(shareUrl, log);
-                    if (fallback && fallback.length > 0) {
-                        images = fallback;
-                        statusText = 'Loaded preview image from Immich.';
-                        log("OG image fallback returned: " + JSON.stringify(fallback));
-                    } else {
-                        statusText = 'Unable to load images from Immich.';
-                        log("OG image fallback returned empty.");
-                    }
+                    log("No Immich assets found.");
                 }
             } else {
-                statusText = 'No valid Immich share URL configured.';
-                log("parseShareInfo returned null for " + shareUrl);
+                log("parseShareInfo returned null for Immich URL: " + shareUrl);
             }
         } else {
-            statusText = 'No valid Immich share URL configured.';
             log("search_engine settings value is empty.");
+        }
+
+        // Amazon Photos Fallback if Immich failed or was empty
+        if (rawAssets.length === 0 && settings.fallback_url) {
+            log("Attempting to load from fallback Amazon Photos URL: " + settings.fallback_url);
+            const amazonInfo = parseAmazonShare(settings.fallback_url);
+            if (amazonInfo) {
+                log("Parsed Amazon Share Info successfully: " + JSON.stringify(amazonInfo));
+                const amazonPayload = fetchAmazonPhotos(amazonInfo.origin, amazonInfo.shareId, log);
+                if (amazonPayload && amazonPayload.images && amazonPayload.images.length > 0) {
+                    rawAssets = amazonPayload.images;
+                    albumName = amazonPayload.albumName;
+                    statusText = `Loaded ${rawAssets.length} item${rawAssets.length === 1 ? '' : 's'} from Amazon Photos.`;
+                    log("Successfully loaded " + rawAssets.length + " items from Amazon Photos.");
+                } else {
+                    statusText = 'Unable to load images from Amazon Photos fallback.';
+                    log("fetchAmazonPhotos returned empty or null.");
+                }
+            } else {
+                statusText = 'Invalid Amazon Photos fallback URL configured.';
+                log("parseAmazonShare returned null for fallback_url: " + settings.fallback_url);
+            }
+        }
+
+        if (rawAssets.length === 0 && !statusText.includes('fallback')) {
+            statusText = 'No valid Immich share URL configured.';
+        }
+
+        // Post-processing: pin count / shuffling / prioritizing videos
+        if (rawAssets.length > 0) {
+            function biasedShuffle(array) {
+                const len = array.length;
+                if (len <= 1) return;
+                const itemsWithScore = array.map((item, index) => {
+                    const score = Math.random() + (1 - index / len) * 0.5;
+                    return { item, score };
+                });
+                itemsWithScore.sort((a, b) => b.score - a.score);
+                for (let i = 0; i < len; i++) {
+                    array[i] = itemsWithScore[i].item;
+                }
+            }
+
+            const pinCount = settings.latest_pin_count;
+            if (rawAssets.length > pinCount) {
+                const pinned = rawAssets.slice(0, pinCount);
+                const rest = rawAssets.slice(pinCount);
+
+                if (settings.prioritize_videos) {
+                    let restVideos = rest.filter(x => x.type === 'VIDEO');
+                    let restPhotos = rest.filter(x => x.type !== 'VIDEO');
+                    if (settings.randomize) {
+                        biasedShuffle(restVideos);
+                        biasedShuffle(restPhotos);
+                    }
+                    images = pinned.concat(restVideos.concat(restPhotos));
+                } else if (settings.randomize) {
+                    biasedShuffle(rest);
+                    images = pinned.concat(rest);
+                } else {
+                    images = rawAssets;
+                }
+            } else {
+                if (settings.prioritize_videos) {
+                    let videos = rawAssets.filter(x => x.type === 'VIDEO');
+                    let photos = rawAssets.filter(x => x.type !== 'VIDEO');
+                    images = videos.concat(photos);
+                } else {
+                    images = rawAssets;
+                }
+            }
+        } else {
+            // Try og:image fallback on Immich shareUrl if config is present and we haven't loaded anything else
+            if (shareUrl) {
+                log("No assets found. Trying OG image fallback...");
+                const fallback = fetchOgImageFallback(shareUrl, log);
+                if (fallback && fallback.length > 0) {
+                    images = fallback.map(u => ({ url: u, thumbnailUrl: u, type: 'IMAGE', duration: 0 }));
+                    statusText = 'Loaded preview image from Immich.';
+                    log("OG image fallback returned: " + JSON.stringify(fallback));
+                } else {
+                    statusText = 'Unable to load images from Immich.';
+                    log("OG image fallback returned empty.");
+                }
+            }
         }
 
         flushLogs();
@@ -446,4 +473,105 @@ function fetchOgImageFallback(urlValue, log) {
         log("fetchOgImageFallback exception: " + err.message);
     }
     return [];
+}
+
+// Helpers for Amazon Photos API fetching
+
+function parseAmazonShare(urlValue) {
+    if (!urlValue) return null;
+    const trimmed = urlValue.trim();
+    const match = trimmed.match(/^(https?:\/\/[^\/]+)\/photos\/share\/([^\/\?]+)/);
+    if (!match) return null;
+    return {
+        origin: match[1],
+        shareId: match[2]
+    };
+}
+
+function fetchAmazonPhotos(origin, shareId, log) {
+    const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+    const headers = {
+        "accept": "application/json",
+        "user-agent": userAgent
+    };
+
+    try {
+        log("fetchAmazonPhotos: fetching shareInfo for ID: " + shareId);
+        const shareUrl = `${origin}/drive/v1/shares/${shareId}?shareId=${shareId}&resourceVersion=V2&ContentType=JSON`;
+        const shareRes = $http.send({
+            url: shareUrl,
+            method: "GET",
+            headers,
+            timeout: 10
+        });
+        log("fetchAmazonPhotos shareInfo status: " + shareRes.statusCode);
+        if (shareRes.statusCode !== 200 || !shareRes.json) {
+            log("fetchAmazonPhotos shareInfo failed: " + shareRes.raw);
+            return null;
+        }
+
+        const nodeInfoId = shareRes.json.nodeInfo && shareRes.json.nodeInfo.id;
+        if (!nodeInfoId) {
+            log("fetchAmazonPhotos shareInfo nodeInfo.id missing");
+            return null;
+        }
+        log("fetchAmazonPhotos nodeInfo.id: " + nodeInfoId);
+
+        log("fetchAmazonPhotos: fetching child folder ID...");
+        const folderUrl = `${origin}/drive/v1/nodes/${nodeInfoId}/children?asset=ALL&limit=1&searchOnFamily=false&shareId=${shareId}&offset=0&resourceVersion=V2&ContentType=JSON`;
+        const folderRes = $http.send({
+            url: folderUrl,
+            method: "GET",
+            headers,
+            timeout: 10
+        });
+        log("fetchAmazonPhotos folder status: " + folderRes.statusCode);
+        if (folderRes.statusCode !== 200 || !folderRes.json || !folderRes.json.data || !folderRes.json.data.length) {
+            log("fetchAmazonPhotos folder failed: " + folderRes.raw);
+            return null;
+        }
+
+        const folderId = folderRes.json.data[0].id;
+        log("fetchAmazonPhotos folderId: " + folderId);
+
+        log("fetchAmazonPhotos: fetching list of child nodes with tempLink=true...");
+        const itemsUrl = `${origin}/drive/v1/nodes/${folderId}/children?asset=ALL&limit=200&searchOnFamily=false&shareId=${shareId}&offset=0&resourceVersion=V2&ContentType=JSON&tempLink=true`;
+        const itemsRes = $http.send({
+            url: itemsUrl,
+            method: "GET",
+            headers,
+            timeout: 15
+        });
+        log("fetchAmazonPhotos items status: " + itemsRes.statusCode);
+        if (itemsRes.statusCode !== 200 || !itemsRes.json || !itemsRes.json.data) {
+            log("fetchAmazonPhotos items failed: " + itemsRes.raw);
+            return null;
+        }
+
+        const nodes = itemsRes.json.data;
+        log("fetchAmazonPhotos found " + nodes.length + " nodes");
+
+        const images = [];
+        for (const node of nodes) {
+            if (node.status === "AVAILABLE" && node.tempLink) {
+                const isVideo = node.contentProperties && node.contentProperties.contentType && node.contentProperties.contentType.startsWith("video/");
+                const type = isVideo ? "VIDEO" : "IMAGE";
+                const url = `${node.tempLink}?shareId=${shareId}`;
+                const thumbnailUrl = `${node.tempLink}?shareId=${shareId}&viewBox=500`;
+                images.push({
+                    url,
+                    thumbnailUrl,
+                    type,
+                    duration: 0
+                });
+            }
+        }
+        return {
+            images,
+            albumName: (shareRes.json.nodeInfo && shareRes.json.nodeInfo.name) || "Amazon Photos Shared Album"
+        };
+    } catch (e) {
+        log("fetchAmazonPhotos exception: " + e.message);
+    }
+    return null;
 }
