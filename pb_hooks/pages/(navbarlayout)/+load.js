@@ -30,6 +30,19 @@ function getCacheTtlMs(settings) {
 }
 
 module.exports = function (context) {
+    // Evict expired entries from in-memory caches to optimize memory usage
+    const nowTime = Date.now();
+    for (const key in _immichCacheMap) {
+        if (_immichCacheMap[key] && _immichCacheMap[key].expiresAt < nowTime) {
+            delete _immichCacheMap[key];
+        }
+    }
+    for (const key in _amazonPhotosCacheMap) {
+        if (_amazonPhotosCacheMap[key] && _amazonPhotosCacheMap[key].expiresAt < nowTime) {
+            delete _amazonPhotosCacheMap[key];
+        }
+    }
+
     const logs = [];
     const log = (msg) => {
         logs.push("[" + new Date().toISOString() + "] " + msg);
