@@ -19,11 +19,11 @@
     >
         <template x-for="(img, idx) in images" :key="idx">
             <div class="w-screen h-screen flex-shrink-0 relative overflow-hidden bg-black flex items-center justify-center">
-                <template x-if="isNear(idx)">
+                <template x-if="isNear(idx) || loadedIndices.includes(idx)">
                     <div class="absolute inset-0 w-full h-full flex items-center justify-center">
                         <!-- Blurred background -->
                         <img
-                            :src="img.thumbnailUrl"
+                            :src="loadedIndices.includes(idx) ? img.thumbnailUrl : ''"
                             alt=""
                             class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
                             loading="lazy"
@@ -32,7 +32,7 @@
                         <!-- Foreground Image -->
                         <img
                             x-show="img.type === 'IMAGE'"
-                            :src="(img.type === 'IMAGE' && Math.abs(idx - currentIndex) <= 1) ? img.url : ''"
+                            :src="(img.type === 'IMAGE' && loadedIndices.includes(idx)) ? img.url : ''"
                             :id="`image-${idx}`"
                             alt="Immich slideshow image"
                             class="relative h-full w-full object-contain z-10"
@@ -216,6 +216,7 @@
             isSwiping: false,
             shouldAnimate: false,
             isFirstLoad: true,
+            loadedIndices: [],
 
             isNear(idx) {
                 const len = this.images.length;
@@ -325,7 +326,20 @@
                 }, 550)
             },
 
+            markLoaded(index) {
+                const len = this.images.length;
+                if (len === 0) return;
+                const prev = (index - 1 + len) % len;
+                const next = (index + 1) % len;
+                [prev, index, next].forEach(idx => {
+                    if (!this.loadedIndices.includes(idx)) {
+                        this.loadedIndices.push(idx);
+                    }
+                });
+            },
+
             onSlideChanged() {
+                this.markLoaded(this.currentIndex)
                 this.currentVideoPlayCount = 0
                 if (this.slideTimerId) {
                     clearInterval(this.slideTimerId)
