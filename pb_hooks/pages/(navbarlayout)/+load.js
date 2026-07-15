@@ -74,7 +74,8 @@ module.exports = function (context) {
             slide_interval: 7,
             video_repeat_threshold: 5,
             video_repeat_count: 3,
-            autoplay_fullscreen: false
+            autoplay_fullscreen: false,
+            cache_ttl: 604800
         };
 
         if (context.locals && context.locals.settings) {
@@ -102,7 +103,8 @@ module.exports = function (context) {
                         slide_interval: record.getInt("slide_interval") || 7,
                         video_repeat_threshold: record.getInt("video_repeat_threshold") || 5,
                         video_repeat_count: record.getInt("video_repeat_count") || 3,
-                        autoplay_fullscreen: record.getBool("autoplay_fullscreen")
+                        autoplay_fullscreen: record.getBool("autoplay_fullscreen"),
+                        cache_ttl: record.getInt("cache_ttl") || 604800
                     };
                     log("Loaded settings from DB. search_engine: " + settings.search_engine);
                 } else {

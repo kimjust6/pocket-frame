@@ -101,7 +101,7 @@
         <h2 class="text-base font-bold text-[color:var(--color-accent)]">
             Slideshow Tuning
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[color:var(--color-primary)]/5 border border-[color:var(--color-primary)]/10 rounded-lg p-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-[color:var(--color-primary)]/5 border border-[color:var(--color-primary)]/10 rounded-lg p-4">
             <div class="flex items-center justify-between md:justify-start gap-4">
                 <label for="latest_pin_count" class="text-sm font-semibold">
                     Pin newest items to front:
@@ -132,6 +132,22 @@
                         class="border-[color:var(--color-primary)]/10 input input-sm input-bordered w-20 bg-transparent text-center"
                     />
                     <span class="text-xs opacity-60 font-semibold">seconds</span>
+                </div>
+            </div>
+            <div class="flex items-center justify-between md:justify-start gap-4">
+                <label for="cache_ttl" class="text-sm font-semibold">
+                    Image cache duration:
+                </label>
+                <div class="flex items-center gap-2">
+                    <input
+                        type="number"
+                        x-model.number="cacheTtlHours"
+                        id="cache_ttl"
+                        min="1"
+                        placeholder="168"
+                        class="border-[color:var(--color-primary)]/10 input input-sm input-bordered w-20 bg-transparent text-center"
+                    />
+                    <span class="text-xs opacity-60 font-semibold">hours</span>
                 </div>
             </div>
         </div>
@@ -295,11 +311,13 @@
             pb: null,
             clearingCache: false,
             cacheSizeText: 'Checking cache...',
+            cacheTtlHours: 168,
 
             init() {
                 this.pb = new PocketBase(window.location.origin);
                 this.pb.authStore.loadFromCookie(document.cookie);
                 this.updateCacheSize();
+                this.cacheTtlHours = Math.round((this.settings.cache_ttl || 604800) / 3600);
             },
 
             async updateCacheSize() {
@@ -385,6 +403,7 @@
 
                     await this.pb.collection('flame_settings').update(this.settings.id, {
                         ...this.settings,
+                        cache_ttl: this.cacheTtlHours * 3600,
                         search_engine: normalizedShareUrl,
                         fallback_url: normalizedFallbackUrl,
                         user: this.userId

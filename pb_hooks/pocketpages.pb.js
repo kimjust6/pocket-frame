@@ -5621,7 +5621,7 @@ var AfterBootstrapHandler = () => {
         if (isDir) {
             return;
         }
-        physicalFiles.push(path3.slice(pagesRoot.length + 1));
+        physicalFiles.push(path3.slice(pagesRoot.length + 1).replaceAll("\\", "/"));
     });
     dbg2({ physicalFiles });
     const addressableFiles = physicalFiles.filter((f) => {
@@ -7858,21 +7858,25 @@ import_pocketbase_ejs.default.compile = function (template, options2) {
 };
 var oldResolveInclude = import_pocketbase_ejs.default.resolveInclude;
 import_pocketbase_ejs.default.resolveInclude = function (includePath, templatePath, isDir) {
-    dbg2(`resolveInclude`, { name: includePath, filename: templatePath, isDir });
     if (includePath.startsWith("/")) {
-        return import_pocketbase_node3.path.resolve(pagesRoot, `_private`, includePath);
+        return $filepath.join(pagesRoot, `_private`, includePath);
     }
-    let currentPath = import_pocketbase_node3.path.dirname(templatePath);
+    let currentPath = $filepath.dir(templatePath);
     while (currentPath.length >= pagesRoot.length) {
-        const attemptPath = import_pocketbase_node3.path.resolve(currentPath, `_private`, includePath);
+        const attemptPath = $filepath.join(currentPath, `_private`, includePath);
         if (import_pocketbase_node3.fs.existsSync(attemptPath, "file")) {
             return attemptPath;
         } else {
             if (currentPath === pagesRoot) {
                 break;
             }
-            currentPath = import_pocketbase_node3.path.dirname(currentPath);
+            currentPath = $filepath.dir(currentPath);
         }
+    }
+    // Fallback direct check under pagesRoot/_private for robust Windows execution
+    const fallbackPath = $filepath.join(pagesRoot, `_private`, includePath);
+    if (import_pocketbase_node3.fs.existsSync(fallbackPath, "file")) {
+        return fallbackPath;
     }
     throw new Error(`No partial '${includePath}' found in any _private directory`);
 };

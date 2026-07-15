@@ -131,6 +131,7 @@ export type BookmarksRecord = {
 
 export type FlameSettingsRecord = {
 	autoplay_fullscreen?: boolean
+	cache_ttl?: number
 	color_accent?: string
 	color_background?: string
 	color_primary?: string
