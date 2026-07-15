@@ -45,21 +45,28 @@ module.exports = function (context) {
                 bookmarks = $app.findRecordsByFilter("bookmarks", "1=1", "order, name", 1000, 0);
             }
 
-            bookmarksByCategory = categories.map(cat => {
-                const catBookmarks = bookmarks.filter(b => b.getString("category") === cat.id);
-                return {
-                    id: cat.id,
-                    name: cat.name,
-                    order: cat.order,
-                    bookmarks: catBookmarks.map(b => ({
-                        id: b.id,
-                        name: b.getString("name"),
-                        url: b.getString("url"),
-                        icon: b.getString("icon"),
-                        order: b.getInt("order")
-                    }))
-                };
-            });
+            const bookmarksMap = {};
+            for (let i = 0; i < bookmarks.length; i++) {
+                const b = bookmarks[i];
+                const catId = b.getString("category");
+                if (!bookmarksMap[catId]) {
+                    bookmarksMap[catId] = [];
+                }
+                bookmarksMap[catId].push({
+                    id: b.id,
+                    name: b.getString("name"),
+                    url: b.getString("url"),
+                    icon: b.getString("icon"),
+                    order: b.getInt("order")
+                });
+            }
+
+            bookmarksByCategory = categories.map(cat => ({
+                id: cat.id,
+                name: cat.name,
+                order: cat.order,
+                bookmarks: bookmarksMap[cat.id] || []
+            }));
         } catch (e) {
             console.error("Failed to fetch bookmarks:", e);
         }

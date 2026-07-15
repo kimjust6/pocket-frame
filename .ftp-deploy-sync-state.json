@@ -1,7 +1,7 @@
 {
     "description": "DO NOT DELETE THIS FILE. This file is used to keep track of which files have been synced in the most recent deployment. If you delete this file a resync will need to be done (which can take a while) - read more: https://github.com/SamKirkland/FTP-Deploy-Action",
     "version": "1.0.0",
-    "generatedTime": 1783652065656,
+    "generatedTime": 1784124031639,
     "data": [
         {
             "type": "file",
@@ -600,8 +600,8 @@
         {
             "type": "file",
             "name": "pb_hooks/pages/app.css",
-            "size": 162337,
-            "hash": "9221f1649284dbcdf548768b665c65a17d867c69bec0172248cae03ec186381f"
+            "size": 162506,
+            "hash": "61f07e3f7b2a0f076ebce325a1ee7ef974284ae25824d5873e790062fb73a97e"
         },
         {
             "type": "folder",
@@ -614,8 +614,8 @@
         {
             "type": "file",
             "name": "pb_hooks/pages/+load.js",
-            "size": 2956,
-            "hash": "dbe6448212aa35191ba81c0acf27826826abcf648e5295ef27af10e838006eaf"
+            "size": 3142,
+            "hash": "714a2b03dbf519bf8ad2db3b1a5a1dc92f4fc99723c4bbecd7457a68ce1b558a"
         },
         {
             "type": "file",
@@ -782,20 +782,20 @@
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/index.ejs",
-            "size": 20107,
-            "hash": "65c778a243b317a41a308dfadb0b7f753dd25f935270cba587954c64a2f934e4"
+            "size": 22014,
+            "hash": "16ce6bf758507cb79b274fdeca21ebf86f669b9c1101f22467105c539fd36208"
         },
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/+middleware.js",
-            "size": 3910,
-            "hash": "8072882726102c720149cd83ef9f098c4b6ec7753a61fbf494be3c623db45c6c"
+            "size": 4802,
+            "hash": "cb73042730d2de8bb507af7b9da9b16a7795ad7e3e20603408d7a45ffffee4b4"
         },
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/+load.js",
-            "size": 30157,
-            "hash": "d29430c3bb810a63c0b462f86b1836234b928c82e65c3538dbebe8303f7bb434"
+            "size": 32629,
+            "hash": "a57057e7c26da3429adc6904c0b9f6c7e7157c6e744f4d5311f241c8a9f9d459"
         },
         {
             "type": "file",
@@ -874,8 +874,8 @@
         {
             "type": "file",
             "name": "pb_hooks/lib/pocketbase-types.ts",
-            "size": 7432,
-            "hash": "63d786b04579b2ff3bbd0264a8713eaa6cc6b21a10ec1711230bc23589738f05"
+            "size": 7384,
+            "hash": "ece7340e03be3070fa166c1386146d1d7775671358493d873ebbe56d6e4119a5"
         },
         {
             "type": "file",

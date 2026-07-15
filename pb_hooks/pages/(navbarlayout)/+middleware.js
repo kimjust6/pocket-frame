@@ -17,6 +17,8 @@ module.exports = function (context) {
     }
 
     let settings = {
+        id: 'defaultsettings',
+        user: user.id,
         color_primary: "#d9d9d9",
         color_accent: "#50fbc2",
         color_background: "#282525",
@@ -24,7 +26,14 @@ module.exports = function (context) {
         weather_lon: "-79.3832",
         weather_unit: "celsius",
         search_engine: "https://www.google.com/search?q=",
-        fallback_url: ""
+        fallback_url: "",
+        randomize: false,
+        prioritize_videos: false,
+        latest_pin_count: 6,
+        slide_interval: 7,
+        video_repeat_threshold: 5,
+        video_repeat_count: 3,
+        autoplay_fullscreen: false
     };
 
     try {
@@ -32,6 +41,8 @@ module.exports = function (context) {
         const record = records && records.length ? records[0] : null;
         if (record) {
             settings = {
+                id: record.id,
+                user: record.getString("user") || user.id,
                 color_primary: record.getString("color_primary") || settings.color_primary,
                 color_accent: record.getString("color_accent") || settings.color_accent,
                 color_background: record.getString("color_background") || settings.color_background,
@@ -39,7 +50,14 @@ module.exports = function (context) {
                 weather_lon: record.getString("weather_lon") || settings.weather_lon,
                 weather_unit: record.getString("weather_unit") || settings.weather_unit,
                 search_engine: record.getString("search_engine") || settings.search_engine,
-                fallback_url: record.getString("fallback_url") || settings.fallback_url
+                fallback_url: record.getString("fallback_url") || settings.fallback_url,
+                randomize: record.getBool("randomize"),
+                prioritize_videos: record.getBool("prioritize_videos"),
+                latest_pin_count: record.getInt("latest_pin_count") || 6,
+                slide_interval: record.getInt("slide_interval") || 7,
+                video_repeat_threshold: record.getInt("video_repeat_threshold") || 5,
+                video_repeat_count: record.getInt("video_repeat_count") || 3,
+                autoplay_fullscreen: record.getBool("autoplay_fullscreen")
             };
         }
     } catch (e) {

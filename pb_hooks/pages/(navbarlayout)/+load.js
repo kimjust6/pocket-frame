@@ -8,15 +8,21 @@
 // is only called when the cache is stale (>30 mins) or missing.
 // When Amazon's API returns 503, we fall back to the stale cache.
 const _amazonPhotosCacheMap = {};
+const _immichCacheMap = {};
 
 module.exports = function (context) {
     const logs = [];
     const log = (msg) => {
         logs.push("[" + new Date().toISOString() + "] " + msg);
     };
-    const flushLogs = () => {
+    const flushLogs = (hasError = false) => {
         try {
-            $os.writeFile("./loader_log.txt", logs.join("\n"), 0644);
+            const isDev = $os.getenv("DEBUG") === "true" ||
+                          $os.getenv("DEBUG_LOG") === "true" ||
+                          (typeof $app !== 'undefined' && typeof $app.isDev === 'function' && $app.isDev());
+            if (isDev || hasError) {
+                $os.writeFile("./loader_log.txt", logs.join("\n"), 0644);
+            }
         } catch (e) { }
     };
 
@@ -52,35 +58,40 @@ module.exports = function (context) {
             autoplay_fullscreen: false
         };
 
-        try {
-            const records = $app.findRecordsByFilter("flame_settings", userFilter, "", 1, 0, filterParams);
-            let record = records && records.length ? records[0] : null;
-            if (record) {
-                settings = {
-                    id: record.id,
-                    user: record.getString("user") || user.id,
-                    color_primary: record.getString("color_primary") || settings.color_primary,
-                    color_accent: record.getString("color_accent") || settings.color_accent,
-                    color_background: record.getString("color_background") || settings.color_background,
-                    weather_lat: record.getString("weather_lat") || settings.weather_lat,
-                    weather_lon: record.getString("weather_lon") || settings.weather_lon,
-                    weather_unit: record.getString("weather_unit") || settings.weather_unit,
-                    search_engine: record.getString("search_engine") || settings.search_engine,
-                    fallback_url: record.getString("fallback_url") || settings.fallback_url,
-                    randomize: record.getBool("randomize"),
-                    prioritize_videos: record.getBool("prioritize_videos"),
-                    latest_pin_count: record.getInt("latest_pin_count") || 6,
-                    slide_interval: record.getInt("slide_interval") || 7,
-                    video_repeat_threshold: record.getInt("video_repeat_threshold") || 5,
-                    video_repeat_count: record.getInt("video_repeat_count") || 3,
-                    autoplay_fullscreen: record.getBool("autoplay_fullscreen")
-                };
-                log("Loaded settings from DB. search_engine: " + settings.search_engine);
-            } else {
-                log("No flame_settings record found in DB for user, using defaults.");
+        if (context.locals && context.locals.settings) {
+            settings = context.locals.settings;
+            log("Loaded settings from context.locals. settings: " + settings.id);
+        } else {
+            try {
+                const records = $app.findRecordsByFilter("flame_settings", userFilter, "", 1, 0, filterParams);
+                let record = records && records.length ? records[0] : null;
+                if (record) {
+                    settings = {
+                        id: record.id,
+                        user: record.getString("user") || user.id,
+                        color_primary: record.getString("color_primary") || settings.color_primary,
+                        color_accent: record.getString("color_accent") || settings.color_accent,
+                        color_background: record.getString("color_background") || settings.color_background,
+                        weather_lat: record.getString("weather_lat") || settings.weather_lat,
+                        weather_lon: record.getString("weather_lon") || settings.weather_lon,
+                        weather_unit: record.getString("weather_unit") || settings.weather_unit,
+                        search_engine: record.getString("search_engine") || settings.search_engine,
+                        fallback_url: record.getString("fallback_url") || settings.fallback_url,
+                        randomize: record.getBool("randomize"),
+                        prioritize_videos: record.getBool("prioritize_videos"),
+                        latest_pin_count: record.getInt("latest_pin_count") || 6,
+                        slide_interval: record.getInt("slide_interval") || 7,
+                        video_repeat_threshold: record.getInt("video_repeat_threshold") || 5,
+                        video_repeat_count: record.getInt("video_repeat_count") || 3,
+                        autoplay_fullscreen: record.getBool("autoplay_fullscreen")
+                    };
+                    log("Loaded settings from DB. search_engine: " + settings.search_engine);
+                } else {
+                    log("No flame_settings record found in DB for user, using defaults.");
+                }
+            } catch (e) {
+                log("Failed to load settings from DB: " + e.message);
             }
-        } catch (e) {
-            log("Failed to load settings from DB: " + e.message);
         }
 
         // Fetch Immich share payload on backend to bypass CORS
@@ -94,110 +105,133 @@ module.exports = function (context) {
             log("Parsing share URL: " + shareUrl);
             const info = parseShareInfo(shareUrl);
             if (info) {
-                log("Parsed Share Info successfully: " + JSON.stringify(info));
-                const payload = fetchSharePayload(info.origin, info.shareKey, info.atToken, log);
-                let assetIds = [];
+                const cacheKey = info.shareKey;
+                const cached = _immichCacheMap[cacheKey];
+                const now = Date.now();
+                const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
-                if (payload) {
-                    log("Payload fetched. Keys: " + Object.keys(payload).join(", "));
-                    if (payload.album && payload.album.albumName) {
-                        albumName = payload.album.albumName;
-                    }
-                    // 1. Try to load direct assets if it's an individual share link
-                    const directAssetIds = [];
-                    collectAssetIds(payload.assets || [], directAssetIds);
-                    log("Direct asset IDs found: " + directAssetIds.length);
+                if (cached && cached.expiresAt > now && cached.assets && cached.assets.length > 0) {
+                    rawAssets = cached.assets;
+                    albumName = cached.albumName || "";
+                    statusText = `Loaded ${rawAssets.length} items from Immich (cached).`;
+                    log("Using fresh cached Immich data (" + rawAssets.length + " items, expires " + new Date(cached.expiresAt).toISOString() + ")");
+                } else {
+                    log("Parsed Share Info successfully: " + JSON.stringify(info));
+                    const payload = fetchSharePayload(info.origin, info.shareKey, info.atToken, log);
+                    let assetIds = [];
 
-                    if (directAssetIds.length > 0) {
-                        assetIds = directAssetIds;
-                    } else if (payload.album && payload.album.id) {
-                        // 2. It's a shared album! Fetch buckets and then bucket contents
-                        const albumId = payload.album.id;
-                        const encodedKey = encodeURIComponent(info.shareKey);
-                        const atQuery = info.atToken ? `&at=${encodeURIComponent(info.atToken)}` : '';
+                    if (payload) {
+                        log("Payload fetched. Keys: " + Object.keys(payload).join(", "));
+                        if (payload.album && payload.album.albumName) {
+                            albumName = payload.album.albumName;
+                        }
+                        // 1. Try to load direct assets if it's an individual share link
+                        const directAssetIds = [];
+                        collectAssetIds(payload.assets || [], directAssetIds);
+                        log("Direct asset IDs found: " + directAssetIds.length);
 
-                        try {
-                            const bucketsUrl = `${info.origin}/api/timeline/buckets?key=${encodedKey}&albumId=${albumId}${atQuery}`;
-                            log("Fetching buckets from url: " + bucketsUrl);
-                            const bucketsRes = $http.send({
-                                url: bucketsUrl,
-                                method: "GET",
-                                headers: { "accept": "application/json" },
-                                timeout: 10
-                            });
+                        if (directAssetIds.length > 0) {
+                            assetIds = directAssetIds;
+                        } else if (payload.album && payload.album.id) {
+                            // 2. It's a shared album! Fetch buckets and then bucket contents
+                            const albumId = payload.album.id;
+                            const encodedKey = encodeURIComponent(info.shareKey);
+                            const atQuery = info.atToken ? `&at=${encodeURIComponent(info.atToken)}` : '';
 
-                            log("Buckets response status: " + bucketsRes.statusCode);
-                            if (bucketsRes.statusCode === 200 && bucketsRes.json) {
-                                const buckets = bucketsRes.json;
-                                log("Found " + buckets.length + " buckets.");
-                                let totalCount = 0;
-                                for (const bucket of buckets) {
-                                    if (totalCount >= 500) break; // Limit to 500 images for slideshow
-                                    try {
-                                        const bucketUrl = `${info.origin}/api/timeline/bucket?key=${encodedKey}&albumId=${albumId}&timeBucket=${encodeURIComponent(bucket.timeBucket)}${atQuery}`;
-                                        log("Fetching bucket: " + bucket.timeBucket + " from " + bucketUrl);
-                                        const bucketRes = $http.send({
-                                            url: bucketUrl,
-                                            method: "GET",
-                                            headers: { "accept": "application/json" },
-                                            timeout: 10
-                                        });
-                                        log("Bucket " + bucket.timeBucket + " status: " + bucketRes.statusCode);
-                                        if (bucketRes.statusCode === 200 && bucketRes.json && Array.isArray(bucketRes.json.id)) {
-                                            const ids = bucketRes.json.id;
-                                            const isImageArray = bucketRes.json.isImage || [];
-                                            const durationArray = bucketRes.json.duration || [];
-                                            const newAssets = [];
-                                            for (let i = 0; i < ids.length; i++) {
-                                                const isImg = isImageArray[i] !== false;
-                                                const durMs = durationArray[i] || 0;
-                                                newAssets.push({
-                                                    id: ids[i],
-                                                    type: isImg ? 'IMAGE' : 'VIDEO',
-                                                    duration: durMs ? Math.round(durMs / 1000) : 0
-                                                });
+                            try {
+                                const bucketsUrl = `${info.origin}/api/timeline/buckets?key=${encodedKey}&albumId=${albumId}${atQuery}`;
+                                log("Fetching buckets from url: " + bucketsUrl);
+                                const bucketsRes = $http.send({
+                                    url: bucketsUrl,
+                                    method: "GET",
+                                    headers: { "accept": "application/json" },
+                                    timeout: 10
+                                });
+
+                                log("Buckets response status: " + bucketsRes.statusCode);
+                                if (bucketsRes.statusCode === 200 && bucketsRes.json) {
+                                    const buckets = bucketsRes.json;
+                                    log("Found " + buckets.length + " buckets.");
+                                    let totalCount = 0;
+                                    for (const bucket of buckets) {
+                                        if (totalCount >= 500) break; // Limit to 500 images for slideshow
+                                        try {
+                                            const bucketUrl = `${info.origin}/api/timeline/bucket?key=${encodedKey}&albumId=${albumId}&timeBucket=${encodeURIComponent(bucket.timeBucket)}${atQuery}`;
+                                            log("Fetching bucket: " + bucket.timeBucket + " from " + bucketUrl);
+                                            const bucketRes = $http.send({
+                                                url: bucketUrl,
+                                                method: "GET",
+                                                headers: { "accept": "application/json" },
+                                                timeout: 10
+                                            });
+                                            log("Bucket " + bucket.timeBucket + " status: " + bucketRes.statusCode);
+                                            if (bucketRes.statusCode === 200 && bucketRes.json && Array.isArray(bucketRes.json.id)) {
+                                                const ids = bucketRes.json.id;
+                                                const isImageArray = bucketRes.json.isImage || [];
+                                                const durationArray = bucketRes.json.duration || [];
+                                                const newAssets = [];
+                                                for (let i = 0; i < ids.length; i++) {
+                                                    const isImg = isImageArray[i] !== false;
+                                                    const durMs = durationArray[i] || 0;
+                                                    newAssets.push({
+                                                        id: ids[i],
+                                                        type: isImg ? 'IMAGE' : 'VIDEO',
+                                                        duration: durMs ? Math.round(durMs / 1000) : 0
+                                                    });
+                                                }
+                                                assetIds = assetIds.concat(newAssets);
+                                                totalCount += ids.length;
+                                                log("Bucket " + bucket.timeBucket + " added " + ids.length + " assets. Total so far: " + totalCount);
+                                            } else {
+                                                log("Bucket " + bucket.timeBucket + " returned invalid response: " + bucketRes.statusCode + " " + bucketRes.raw);
                                             }
-                                            assetIds = assetIds.concat(newAssets);
-                                            totalCount += ids.length;
-                                            log("Bucket " + bucket.timeBucket + " added " + ids.length + " assets. Total so far: " + totalCount);
-                                        } else {
-                                            log("Bucket " + bucket.timeBucket + " returned invalid response: " + bucketRes.statusCode + " " + bucketRes.raw);
+                                        } catch (e) {
+                                            log("Exception fetching bucket " + bucket.timeBucket + ": " + e.message);
                                         }
-                                    } catch (e) {
-                                        log("Exception fetching bucket " + bucket.timeBucket + ": " + e.message);
                                     }
+                                } else {
+                                    log("Buckets response error. Status: " + bucketsRes.statusCode + ", raw: " + bucketsRes.raw);
                                 }
-                            } else {
-                                log("Buckets response error. Status: " + bucketsRes.statusCode + ", raw: " + bucketsRes.raw);
+                            } catch (e) {
+                                log("Failed to fetch shared album buckets: " + e.message);
                             }
-                        } catch (e) {
-                            log("Failed to fetch shared album buckets: " + e.message);
+                        } else {
+                            log("Payload does not contain assets or album.");
                         }
                     } else {
-                        log("Payload does not contain assets or album.");
+                        log("Payload fetch returned null.");
                     }
-                } else {
-                    log("Payload fetch returned null.");
-                }
 
-                if (assetIds.length > 0) {
-                    const atQuery = info.atToken ? `&at=${encodeURIComponent(info.atToken)}` : '';
-                    rawAssets = assetIds.map(asset => {
-                        const thumbnailUrl = `${info.origin}/api/assets/${asset.id}/thumbnail?key=${encodeURIComponent(info.shareKey)}&size=preview${atQuery}`;
-                        const url = asset.type === 'VIDEO'
-                            ? `${info.origin}/api/assets/${asset.id}/video/playback?key=${encodeURIComponent(info.shareKey)}${atQuery}`
-                            : thumbnailUrl;
-                        return {
-                            url,
-                            thumbnailUrl,
-                            type: asset.type,
-                            duration: asset.duration || 0
+                    if (assetIds.length > 0) {
+                        const atQuery = info.atToken ? `&at=${encodeURIComponent(info.atToken)}` : '';
+                        rawAssets = assetIds.map(asset => {
+                            const thumbnailUrl = `${info.origin}/api/assets/${asset.id}/thumbnail?key=${encodeURIComponent(info.shareKey)}&size=preview${atQuery}`;
+                            const url = asset.type === 'VIDEO'
+                                ? `${info.origin}/api/assets/${asset.id}/video/playback?key=${encodeURIComponent(info.shareKey)}${atQuery}`
+                                : thumbnailUrl;
+                            return {
+                                url,
+                                thumbnailUrl,
+                                type: asset.type,
+                                duration: asset.duration || 0
+                            };
+                        });
+                        statusText = `Loaded ${rawAssets.length} item${rawAssets.length === 1 ? '' : 's'} from Immich.`;
+                        log("Successfully loaded " + rawAssets.length + " items from Immich. Caching result.");
+
+                        _immichCacheMap[cacheKey] = {
+                            assets: rawAssets,
+                            albumName: albumName,
+                            expiresAt: now + CACHE_TTL_MS
                         };
-                    });
-                    statusText = `Loaded ${rawAssets.length} item${rawAssets.length === 1 ? '' : 's'} from Immich.`;
-                    log("Successfully loaded " + rawAssets.length + " items from Immich.");
-                } else {
-                    log("No Immich assets found.");
+                    } else if (cached && cached.assets && cached.assets.length > 0) {
+                        rawAssets = cached.assets;
+                        albumName = cached.albumName || "";
+                        statusText = `Loaded ${rawAssets.length} items from Immich (stale cache - API temporarily unavailable).`;
+                        log("Live fetch failed, using stale cached Immich data (" + rawAssets.length + " items)");
+                    } else {
+                        log("No Immich assets found.");
+                    }
                 }
             } else {
                 log("parseShareInfo returned null for Immich URL: " + shareUrl);
@@ -318,7 +352,7 @@ module.exports = function (context) {
             }
         }
 
-        flushLogs();
+        flushLogs(false);
         return {
             isHome: true,
             settings,
@@ -331,7 +365,7 @@ module.exports = function (context) {
         };
     } catch (e) {
         log('Failed to load startpage data exception: ' + e.message);
-        flushLogs();
+        flushLogs(true);
         return {
             isHome: true,
             settings: {},
