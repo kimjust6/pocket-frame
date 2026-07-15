@@ -113,9 +113,6 @@ export type FlameSettingsRecord = {
 	user?: RecordIdString
 	video_repeat_count?: number
 	video_repeat_threshold?: number
-	weather_lat?: string
-	weather_lon?: string
-	weather_unit?: string
 }
 
 export type UsersRecord = {

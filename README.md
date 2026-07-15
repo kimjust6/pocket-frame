@@ -6,8 +6,7 @@
 
 -   **Slideshow Dashboard**: Smooth transitions, touch/keyboard controls, and full-screen kiosk mode for viewing shared photo albums.
 -   **Immich Support**: Native integration to stream photos and videos directly from Immich share links.
--   **Weather Widget**: Integrated weather checking powered by the free Open-Meteo API.
--   **Settings Management**: A comprehensive admin dashboard to configure theme colors (Primary, Accent, Background), weather latitude/longitude, slide transition timing, cache settings, and autoplay options.
+-   **Settings Management**: A comprehensive admin dashboard to configure theme colors (Primary, Accent, Background), slide transition timing, cache settings, and autoplay options.
 -   **Secure & Private**: Optional authentication to secure settings management.
 -   **Modern Design**: Sleek responsive layout, custom variables for custom color branding, and smooth transitions.
 
