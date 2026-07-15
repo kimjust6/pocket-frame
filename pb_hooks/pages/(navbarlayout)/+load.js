@@ -10,6 +10,25 @@
 const _amazonPhotosCacheMap = {};
 const _immichCacheMap = {};
 
+function getCacheTtlMs(settings) {
+    let cacheTtlSec = 7 * 24 * 60 * 60; // 1 week default (604800 seconds)
+    
+    // Check environment variable
+    const envTtl = $os.getenv("CACHE_TTL_SECONDS");
+    if (envTtl) {
+        const parsed = parseInt(envTtl, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+            cacheTtlSec = parsed;
+        }
+    } else if (settings && typeof settings.cache_ttl !== 'undefined') {
+        const parsed = parseInt(settings.cache_ttl, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+            cacheTtlSec = parsed;
+        }
+    }
+    return cacheTtlSec * 1000;
+}
+
 module.exports = function (context) {
     const logs = [];
     const log = (msg) => {
@@ -108,7 +127,7 @@ module.exports = function (context) {
                 const cacheKey = info.shareKey;
                 const cached = _immichCacheMap[cacheKey];
                 const now = Date.now();
-                const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+                const CACHE_TTL_MS = getCacheTtlMs(settings);
 
                 if (cached && cached.expiresAt > now && cached.assets && cached.assets.length > 0) {
                     rawAssets = cached.assets;
@@ -250,7 +269,7 @@ module.exports = function (context) {
                 const cacheKey = amazonInfo.shareId;
                 const cached = _amazonPhotosCacheMap[cacheKey];
                 const now = Date.now();
-                const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
+                const CACHE_TTL_MS = getCacheTtlMs(settings);
 
                 // Use fresh cache if available
                 if (cached && cached.expiresAt > now && cached.images && cached.images.length > 0) {

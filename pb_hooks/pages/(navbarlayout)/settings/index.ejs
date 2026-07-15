@@ -250,6 +250,27 @@
         </div>
     </form>
 
+    <div class="bg-[color:var(--color-primary)]/3 border-[color:var(--color-primary)]/10 mt-6 space-y-4 rounded-xl border p-6">
+        <h2 class="text-base font-bold text-[color:var(--color-accent)]">
+            Cache Management
+        </h2>
+        <p class="text-xs opacity-70">
+            Images are cached locally in your browser for offline use and faster slideshow loading.
+        </p>
+        <div class="flex items-center gap-4">
+            <button
+                type="button"
+                @click="clearCache()"
+                class="btn btn-error btn-sm btn-outline rounded-lg px-4 font-semibold"
+                :class="{ 'loading': clearingCache }"
+                :disabled="clearingCache"
+            >
+                Clear Browser Image Cache
+            </button>
+            <span class="text-xs opacity-50" x-text="cacheSizeText">Checking storage...</span>
+        </div>
+    </div>
+
     <div class="toast toast-end toast-bottom z-[100]">
         <template x-for="toast in toasts" :key="toast.id">
             <div :class="`alert ${toastAlertClass(toast.type)} shadow-lg`">
@@ -272,10 +293,49 @@
             settings: <%- JSON.stringify(data.settings) %>,
             userId: '<%= locals.auth ? locals.auth.id : "" %>',
             pb: null,
+            clearingCache: false,
+            cacheSizeText: 'Checking cache...',
 
             init() {
                 this.pb = new PocketBase(window.location.origin);
                 this.pb.authStore.loadFromCookie(document.cookie);
+                this.updateCacheSize();
+            },
+
+            async updateCacheSize() {
+                try {
+                    if ('caches' in window) {
+                        const cache = await caches.open('pocket-frame-image-cache-v1');
+                        const keys = await cache.keys();
+                        this.cacheSizeText = `${keys.length} image(s) cached`;
+                    } else {
+                        this.cacheSizeText = 'Browser caching not supported';
+                    }
+                } catch (e) {
+                    this.cacheSizeText = 'Unable to check cache';
+                }
+            },
+
+            async clearCache() {
+                if (this.clearingCache) return;
+                this.clearingCache = true;
+                try {
+                    if ('caches' in window) {
+                        const deleted = await caches.delete('pocket-frame-image-cache-v1');
+                        if (deleted) {
+                            this.showToast('Browser image cache cleared successfully!', 'success');
+                        } else {
+                            this.showToast('No cache found to clear.', 'info');
+                        }
+                    } else {
+                        this.showToast('Browser cache is not supported by your browser.', 'warning');
+                    }
+                    await this.updateCacheSize();
+                } catch (e) {
+                    this.showToast('Error clearing cache: ' + e.message, 'error');
+                } finally {
+                    this.clearingCache = false;
+                }
             },
 
             extractUrlCandidate(rawValue) {
