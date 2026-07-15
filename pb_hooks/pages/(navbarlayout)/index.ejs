@@ -190,25 +190,41 @@
     </div>
 </div>
 
+<script id="slideshow-data" type="application/json">
+    <%- JSON.stringify({
+        shareUrl: (locals.data && locals.data.settings) ? locals.data.settings.search_engine : "",
+        shareInfo: (locals.data && locals.data.shareInfo) ? data.shareInfo : null,
+        images: (locals.data && locals.data.images) ? data.images : [],
+        statusText: (locals.data && locals.data.statusText) ? data.statusText : "Loading slideshow...",
+        slideIntervalMs: (locals.data && locals.data.settings && locals.data.settings.slide_interval) ? locals.data.settings.slide_interval * 1000 : 7000,
+        videoRepeatThreshold: (locals.data && locals.data.settings && locals.data.settings.video_repeat_threshold) ? locals.data.settings.video_repeat_threshold : 5,
+        videoRepeatCount: (locals.data && locals.data.settings && locals.data.settings.video_repeat_count) ? locals.data.settings.video_repeat_count : 3,
+        autoplayFullscreen: !!(locals.data && locals.data.settings && locals.data.settings.autoplay_fullscreen)
+    }) %>
+</script>
+
 <script src="/js/toast-helper.js"></script>
 <script>
     function immichSlideshow() {
+        const dataEl = document.getElementById('slideshow-data');
+        const slideData = dataEl ? JSON.parse(dataEl.textContent) : {};
+
         return window.withToastHelpers({
-            shareUrl: '<%= (locals.data && locals.data.settings) ? locals.data.settings.search_engine : "" %>',
-            shareInfo: <%- (locals.data && locals.data.shareInfo) ? JSON.stringify(data.shareInfo) : 'null' %>,
-            images: <%- JSON.stringify(data.images || []) %>,
+            shareUrl: slideData.shareUrl || '',
+            shareInfo: slideData.shareInfo || null,
+            images: slideData.images || [],
             currentIndex: 0,
-            statusText: '<%= data.statusText || "Loading slideshow..." %>',
+            statusText: slideData.statusText || 'Loading slideshow...',
             emptyMessage: 'No images loaded. Add an Immich share URL in Settings to start the slideshow.',
             slideTimerId: null,
-            slideIntervalMs: <%= (locals.data && locals.data.settings && locals.data.settings.slide_interval) ? locals.data.settings.slide_interval * 1000 : 7000 %>,
+            slideIntervalMs: slideData.slideIntervalMs || 7000,
             showControls: true,
             controlsTimeout: null,
-            videoRepeatThreshold: <%= (locals.data && locals.data.settings && locals.data.settings.video_repeat_threshold) ? locals.data.settings.video_repeat_threshold : 5 %>,
-            videoRepeatCount: <%= (locals.data && locals.data.settings && locals.data.settings.video_repeat_count) ? locals.data.settings.video_repeat_count : 3 %>,
+            videoRepeatThreshold: slideData.videoRepeatThreshold || 5,
+            videoRepeatCount: slideData.videoRepeatCount || 3,
             currentVideoPlayCount: 0,
             isFullscreen: false,
-            autoplayFullscreen: <%= (locals.data && locals.data.settings && locals.data.settings.autoplay_fullscreen) ? 'true' : 'false' %>,
+            autoplayFullscreen: !!slideData.autoplayFullscreen,
             touchStartX: 0,
             touchEndX: 0,
             touchStartY: 0,
