@@ -31,7 +31,34 @@ self.addEventListener('fetch', (event) => {
             caches.open(CACHE_NAME).then((cache) => {
                 return cache.match(request).then((cachedResponse) => {
                     if (cachedResponse) {
-                        return cachedResponse;
+                        return caches.open('pocket-frame-settings-cache').then((settingsCache) => {
+                            return settingsCache.match('/settings.json').then((settingsResponse) => {
+                                if (settingsResponse) {
+                                    return settingsResponse.json().then((settings) => {
+                                        const ttl = settings.cache_ttl * 1000; // in ms
+                                        const dateHeader = cachedResponse.headers.get('date');
+                                        if (dateHeader && ttl) {
+                                            const age = Date.now() - new Date(dateHeader).getTime();
+                                            if (age > ttl) {
+                                                // Cache expired! Fetch from network and update cache.
+                                                // Fallback to cached version if network fails.
+                                                return fetch(request).then((networkResponse) => {
+                                                    if (networkResponse && (networkResponse.status === 200 || networkResponse.status === 0)) {
+                                                        cache.put(request, networkResponse.clone());
+                                                        return networkResponse;
+                                                    }
+                                                    return cachedResponse;
+                                                }).catch(() => {
+                                                    return cachedResponse;
+                                                });
+                                            }
+                                        }
+                                        return cachedResponse;
+                                    }).catch(() => cachedResponse);
+                                }
+                                return cachedResponse;
+                            });
+                        }).catch(() => cachedResponse);
                     }
 
                     return fetch(request).then((networkResponse) => {

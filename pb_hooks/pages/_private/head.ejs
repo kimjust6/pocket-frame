@@ -40,6 +40,16 @@
                                          }).catch(function(err) {
                                              console.error('ServiceWorker registration failed:', err);
                                          });
+
+                                         if ('caches' in window) {
+                                             caches.open('pocket-frame-settings-cache').then(function(cache) {
+                                                 cache.put('/settings.json', new Response(JSON.stringify({
+                                                     cache_ttl: <%= (locals.settings && typeof locals.settings.cache_ttl !== 'undefined') ? locals.settings.cache_ttl : 604800 %>
+                                                 }), {
+                                                     headers: { 'Content-Type': 'application/json' }
+                                                 }));
+                                             });
+                                         }
                                      });
                                  }
                              </script>

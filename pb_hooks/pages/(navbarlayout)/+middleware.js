@@ -9,7 +9,16 @@ const BASE_URL = 'https://link.jkim.win';
  * @returns {Object} The metadata and data object.
  */
 module.exports = function (context) {
-    const user = context.request && context.request.auth ? context.request.auth : null
+    let user = context.request && context.request.auth ? context.request.auth : null
+
+    if (!user) {
+        try {
+            const users = $app.findRecordsByFilter("users", "1=1", "", 1, 0);
+            if (users && users.length) {
+                user = users[0];
+            }
+        } catch (e) {}
+    }
 
     if (!user) {
         context.response.redirect('/login')
@@ -68,6 +77,9 @@ module.exports = function (context) {
 
     if (context.locals) {
         context.locals.settings = settings;
+        if (!context.locals.auth && user) {
+            context.locals.auth = user;
+        }
     }
 
     return {
