@@ -195,6 +195,7 @@
     function immichSlideshow() {
         return window.withToastHelpers({
             shareUrl: '<%= (locals.data && locals.data.settings) ? locals.data.settings.search_engine : "" %>',
+            shareInfo: <%- (locals.data && locals.data.shareInfo) ? JSON.stringify(data.shareInfo) : 'null' %>,
             images: <%- JSON.stringify(data.images || []) %>,
             currentIndex: 0,
             statusText: '<%= data.statusText || "Loading slideshow..." %>',
@@ -233,6 +234,37 @@
                 document.addEventListener('fullscreenchange', () => {
                     this.isFullscreen = !!document.fullscreenElement
                 })
+
+                // Reconstruct full URLs if using simplified Immich format
+                if (this.shareInfo && this.images.length > 0) {
+                    const origin = this.shareInfo.origin;
+                    const shareKey = encodeURIComponent(this.shareInfo.shareKey);
+                    const atQuery = this.shareInfo.atToken ? `&at=${encodeURIComponent(this.shareInfo.atToken)}` : '';
+                    this.images = this.images.map(img => {
+                        if (img.id) {
+                            const thumbnailUrl = `${origin}/api/assets/${img.id}/thumbnail?key=${shareKey}&size=preview${atQuery}`;
+                            const url = img.type === 'VIDEO'
+                                ? `${origin}/api/assets/${img.id}/video/playback?key=${shareKey}${atQuery}`
+                                : thumbnailUrl;
+                            return {
+                                url,
+                                thumbnailUrl,
+                                type: img.type,
+                                duration: img.duration || 0
+                            };
+                        }
+                        return img;
+                    });
+                } else if (this.images.length > 0) {
+                    // For Amazon / fallback format, set thumbnailUrl to url if missing
+                    this.images = this.images.map(img => {
+                        if (img.url && !img.thumbnailUrl) {
+                            img.thumbnailUrl = img.url;
+                        }
+                        return img;
+                    });
+                }
+
                 if (this.images.length > 0) {
                     if (document.readyState === 'complete') {
                         this.onSlideChanged()

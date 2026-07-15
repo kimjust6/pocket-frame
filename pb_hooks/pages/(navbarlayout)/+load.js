@@ -3,12 +3,7 @@
  * @type {import('pocketpages').PageDataLoaderFunc}
  */
 
-// Module-level in-memory cache for Amazon Photos results.
-// Persists across requests within the same server process, so Amazon's API
-// is only called when the cache is stale (>30 mins) or missing.
-// When Amazon's API returns 503, we fall back to the stale cache.
-const _amazonPhotosCacheMap = {};
-const _immichCacheMap = {};
+// Caches are stored in PocketBase's Go-native $app.store() to avoid memory leaks.
 
 function getCacheTtlMs(settings) {
     let cacheTtlSec = 7 * 24 * 60 * 60; // 1 week default (604800 seconds)
@@ -30,17 +25,40 @@ function getCacheTtlMs(settings) {
 }
 
 module.exports = function (context) {
-    // Evict expired entries from in-memory caches to optimize memory usage
+    // Evict expired entries from Go-native store to optimize memory usage
     const nowTime = Date.now();
-    for (const key in _immichCacheMap) {
-        if (_immichCacheMap[key] && _immichCacheMap[key].expiresAt < nowTime) {
-            delete _immichCacheMap[key];
+    let cacheKeys = [];
+    try {
+        const rawKeys = $app.store().get("flame_cache_keys");
+        if (rawKeys) {
+            cacheKeys = JSON.parse(rawKeys);
+        }
+    } catch (e) {}
+
+    const nextCacheKeys = [];
+    let cacheKeysChanged = false;
+    for (let i = 0; i < cacheKeys.length; i++) {
+        const key = cacheKeys[i];
+        try {
+            const rawCache = $app.store().get("flame_cache_" + key);
+            if (rawCache) {
+                const cached = JSON.parse(rawCache);
+                if (cached.expiresAt < nowTime) {
+                    $app.store().remove("flame_cache_" + key);
+                    cacheKeysChanged = true;
+                } else {
+                    nextCacheKeys.push(key);
+                }
+            } else {
+                cacheKeysChanged = true;
+            }
+        } catch (e) {
+            $app.store().remove("flame_cache_" + key);
+            cacheKeysChanged = true;
         }
     }
-    for (const key in _amazonPhotosCacheMap) {
-        if (_amazonPhotosCacheMap[key] && _amazonPhotosCacheMap[key].expiresAt < nowTime) {
-            delete _amazonPhotosCacheMap[key];
-        }
+    if (cacheKeysChanged) {
+        $app.store().set("flame_cache_keys", JSON.stringify(nextCacheKeys));
     }
 
     const logs = [];
@@ -140,7 +158,15 @@ module.exports = function (context) {
             const info = parseShareInfo(shareUrl);
             if (info) {
                 const cacheKey = info.shareKey;
-                const cached = _immichCacheMap[cacheKey];
+                let cached = null;
+                try {
+                    const rawCache = $app.store().get("flame_cache_" + cacheKey);
+                    if (rawCache) {
+                        cached = JSON.parse(rawCache);
+                    }
+                } catch (e) {
+                    log("Failed to parse cached Immich data: " + e.message);
+                }
                 const now = Date.now();
                 const CACHE_TTL_MS = getCacheTtlMs(settings);
 
@@ -237,15 +263,9 @@ module.exports = function (context) {
                     }
 
                     if (assetIds.length > 0) {
-                        const atQuery = info.atToken ? `&at=${encodeURIComponent(info.atToken)}` : '';
                         rawAssets = assetIds.map(asset => {
-                            const thumbnailUrl = `${info.origin}/api/assets/${asset.id}/thumbnail?key=${encodeURIComponent(info.shareKey)}&size=preview${atQuery}`;
-                            const url = asset.type === 'VIDEO'
-                                ? `${info.origin}/api/assets/${asset.id}/video/playback?key=${encodeURIComponent(info.shareKey)}${atQuery}`
-                                : thumbnailUrl;
                             return {
-                                url,
-                                thumbnailUrl,
+                                id: asset.id,
                                 type: asset.type,
                                 duration: asset.duration || 0
                             };
@@ -253,11 +273,25 @@ module.exports = function (context) {
                         statusText = `Loaded ${rawAssets.length} item${rawAssets.length === 1 ? '' : 's'} from Immich.`;
                         log("Successfully loaded " + rawAssets.length + " items from Immich. Caching result.");
 
-                        _immichCacheMap[cacheKey] = {
+                        const newCache = {
                             assets: rawAssets,
                             albumName: albumName,
                             expiresAt: now + CACHE_TTL_MS
                         };
+                        try {
+                            $app.store().set("flame_cache_" + cacheKey, JSON.stringify(newCache));
+                            let keysList = [];
+                            try {
+                                const rawKeys = $app.store().get("flame_cache_keys");
+                                if (rawKeys) keysList = JSON.parse(rawKeys);
+                            } catch (e) {}
+                            if (!keysList.includes(cacheKey)) {
+                                keysList.push(cacheKey);
+                                $app.store().set("flame_cache_keys", JSON.stringify(keysList));
+                            }
+                        } catch (e) {
+                            log("Failed to save Immich cache: " + e.message);
+                        }
                     } else if (cached && cached.assets && cached.assets.length > 0) {
                         rawAssets = cached.assets;
                         albumName = cached.albumName || "";
@@ -282,7 +316,15 @@ module.exports = function (context) {
                 log("Parsed Amazon Share Info successfully: " + JSON.stringify(amazonInfo));
 
                 const cacheKey = amazonInfo.shareId;
-                const cached = _amazonPhotosCacheMap[cacheKey];
+                let cached = null;
+                try {
+                    const rawCache = $app.store().get("flame_cache_" + cacheKey);
+                    if (rawCache) {
+                        cached = JSON.parse(rawCache);
+                    }
+                } catch (e) {
+                    log("Failed to parse cached Amazon Photos data: " + e.message);
+                }
                 const now = Date.now();
                 const CACHE_TTL_MS = getCacheTtlMs(settings);
 
@@ -301,11 +343,25 @@ module.exports = function (context) {
                         statusText = `Loaded ${rawAssets.length} item${rawAssets.length === 1 ? '' : 's'} from Amazon Photos.`;
                         log("Successfully loaded " + rawAssets.length + " items from Amazon Photos. Caching result.");
                         // Store in cache
-                        _amazonPhotosCacheMap[cacheKey] = {
+                        const newCache = {
                             images: rawAssets,
                             albumName: albumName,
                             expiresAt: now + CACHE_TTL_MS
                         };
+                        try {
+                            $app.store().set("flame_cache_" + cacheKey, JSON.stringify(newCache));
+                            let keysList = [];
+                            try {
+                                const rawKeys = $app.store().get("flame_cache_keys");
+                                if (rawKeys) keysList = JSON.parse(rawKeys);
+                            } catch (e) {}
+                            if (!keysList.includes(cacheKey)) {
+                                keysList.push(cacheKey);
+                                $app.store().set("flame_cache_keys", JSON.stringify(keysList));
+                            }
+                        } catch (e) {
+                            log("Failed to save Amazon Photos cache: " + e.message);
+                        }
                     } else if (cached && cached.images && cached.images.length > 0) {
                         // Live fetch failed - use stale cache as last resort
                         rawAssets = cached.images;
@@ -376,7 +432,7 @@ module.exports = function (context) {
                 log("No assets found. Trying OG image fallback...");
                 const fallback = fetchOgImageFallback(shareUrl, log);
                 if (fallback && fallback.length > 0) {
-                    images = fallback.map(u => ({ url: u, thumbnailUrl: u, type: 'IMAGE', duration: 0 }));
+                    images = fallback.map(u => ({ url: u, type: 'IMAGE', duration: 0 }));
                     statusText = 'Loaded preview image from Immich.';
                     log("OG image fallback returned: " + JSON.stringify(fallback));
                 } else {
@@ -387,10 +443,23 @@ module.exports = function (context) {
         }
 
         flushLogs(false);
+        let shareInfo = null;
+        if (shareUrl) {
+            const info = parseShareInfo(shareUrl);
+            if (info) {
+                shareInfo = {
+                    origin: info.origin,
+                    shareKey: info.shareKey,
+                    atToken: info.atToken
+                };
+            }
+        }
+
         return {
             isHome: true,
             settings,
             images,
+            shareInfo,
             statusText,
             albumName,
             applications: [],
@@ -404,6 +473,7 @@ module.exports = function (context) {
             isHome: true,
             settings: {},
             images: [],
+            shareInfo: null,
             statusText: 'Failed to load settings.',
             applications: [],
             categories: [],
@@ -724,10 +794,8 @@ function fetchAmazonPhotos(origin, shareId, log) {
                 // uses the same key but has no such restrictions (it's self-authenticating).
                 const presignedLink = node.tempLink.replace("/cdproxy/templink/", "/v2/download/presigned/");
                 const url = `${presignedLink}?shareId=${shareId}`;
-                const thumbnailUrl = url; // presigned URLs don't support viewBox resizing
                 images.push({
                     url,
-                    thumbnailUrl,
                     type,
                     duration: 0
                 });
