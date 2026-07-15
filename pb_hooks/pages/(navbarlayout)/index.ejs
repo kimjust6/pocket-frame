@@ -11,59 +11,53 @@
     @keydown.window.right="nextImage(); keepControlsAlive()"
 >
     <!-- Slideshow Track Wrapper -->
-    <template x-if="images.length > 0">
-        <div 
-            class="absolute inset-0 flex"
-            :class="(isSwiping || !shouldAnimate) ? '' : 'transition-transform duration-500 ease-out'"
-            :style="`transform: translateX(calc(-${currentIndex * 100}% + ${swipeOffset}px))`"
-        >
-            <template x-for="(img, idx) in images" :key="idx">
-                <div class="w-screen h-screen flex-shrink-0 relative overflow-hidden bg-black flex items-center justify-center">
-                    <div class="absolute inset-0 w-full h-full flex items-center justify-center">
-                        <!-- Blurred background -->
-                        <img
-                            :src="img.thumbnailUrl"
-                            alt=""
-                            class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
-                            loading="lazy"
-                            referrerpolicy="no-referrer"
-                        />
-                        <!-- Foreground Image -->
-                        <template x-if="img.type === 'IMAGE'">
-                            <img
-                                :src="img.url"
-                                alt="Immich slideshow image"
-                                class="relative h-full w-full object-contain z-10"
-                                loading="lazy"
-                                referrerpolicy="no-referrer"
-                            />
-                        </template>
-                        <!-- Foreground Video -->
-                        <template x-if="img.type === 'VIDEO'">
-                            <video
-                                :src="img.url"
-                                :id="`video-${idx}`"
-                                preload="auto"
-                                muted
-                                autoplay
-                                playsinline
-                                controls
-                                @canplay="if (idx === currentIndex) { const v = $event.target; v.muted = true; setTimeout(() => { v.play().then(() => { v.muted = false }).catch(() => { v.muted = false }) }, 150) }"
-                                @ended="onVideoEnded($event)"
-                                class="relative h-full w-full object-contain z-10 pointer-events-auto"
-                                referrerpolicy="no-referrer"
-                            ></video>
-                        </template>
-                    </div>
+    <div 
+        x-show="images.length > 0"
+        class="absolute inset-0 flex"
+        :class="(isSwiping || !shouldAnimate) ? '' : 'transition-transform duration-500 ease-out'"
+        :style="`transform: translateX(calc(-${currentIndex * 100}% + ${swipeOffset}px))`"
+    >
+        <template x-for="(img, idx) in images" :key="idx">
+            <div class="w-screen h-screen flex-shrink-0 relative overflow-hidden bg-black flex items-center justify-center">
+                <div class="absolute inset-0 w-full h-full flex items-center justify-center">
+                    <!-- Blurred background -->
+                    <img
+                        :src="img.thumbnailUrl"
+                        alt=""
+                        class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
+                        loading="lazy"
+                        referrerpolicy="no-referrer"
+                    />
+                    <!-- Foreground Image -->
+                    <img
+                        x-show="img.type === 'IMAGE'"
+                        :src="(img.type === 'IMAGE' && Math.abs(idx - currentIndex) <= 1) ? img.url : ''"
+                        :id="`image-${idx}`"
+                        alt="Immich slideshow image"
+                        class="relative h-full w-full object-contain z-10"
+                        referrerpolicy="no-referrer"
+                    />
+                    <!-- Foreground Video -->
+                    <video
+                        x-show="img.type === 'VIDEO'"
+                        :src="(img.type === 'VIDEO' && idx === currentIndex) ? img.url : ''"
+                        :id="`video-${idx}`"
+                        preload="auto"
+                        muted
+                        playsinline
+                        controls
+                        @canplay="if (idx === currentIndex) { const v = $event.target; v.muted = true; setTimeout(() => { v.play().then(() => { v.muted = false }).catch(() => { v.muted = false }) }, 150) }"
+                        @ended="onVideoEnded($event)"
+                        class="relative h-full w-full object-contain z-10 pointer-events-auto"
+                        referrerpolicy="no-referrer"
+                    ></video>
                 </div>
-            </template>
-        </div>
-    </template>
-    <template x-if="images.length === 0">
-        <div class="absolute inset-0 flex items-center justify-center px-6 text-center text-white z-10">
-            <p class="max-w-2xl text-sm opacity-70" x-text="emptyMessage"></p>
-        </div>
-    </template>
+            </div>
+        </template>
+    </div>
+    <div x-show="images.length === 0" class="absolute inset-0 flex items-center justify-center px-6 text-center text-white z-10">
+        <p class="max-w-2xl text-sm opacity-70" x-text="emptyMessage"></p>
+    </div>
 
     <!-- Top Control Overlay -->
     <div
@@ -89,12 +83,7 @@
                 title="Toggle Fullscreen"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <template x-if="!isFullscreen">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4M16 4h4v4M4 16v4h4M20 16v4h-4" />
-                    </template>
-                    <template x-if="isFullscreen">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h4v4H4zm12 0h4v4h-4zM4 16h4v4H4zm12 0h4v4h-4z" />
-                    </template>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="isFullscreen ? 'M4 4h4v4H4zm12 0h4v4h-4zM4 16h4v4H4zm12 0h4v4h-4z' : 'M4 8V4h4M16 4h4v4M4 16v4h4M20 16v4h-4'" />
                 </svg>
                 <span x-text="isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'"></span>
             </button>
@@ -183,21 +172,20 @@
     </div>
 
     <!-- Autoplay Fullscreen Start Overlay -->
-    <template x-if="autoplayFullscreen && !isFullscreen">
-        <div 
-            @click="toggleFullscreen()"
-            class="fixed inset-0 z-[1000] bg-black/95 flex flex-col items-center justify-center cursor-pointer select-none text-white transition-all duration-500"
-        >
-            <div class="text-center space-y-4 max-w-sm p-6">
-                <!-- Tap Icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-[color:var(--color-accent)] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-                </svg>
-                <h2 class="text-xl font-bold tracking-tight">Tap to Start Kiosk Mode</h2>
-                <p class="text-xs opacity-70">This will launch the Immich Slideshow in fullscreen.</p>
-            </div>
+    <div 
+        x-show="autoplayFullscreen && !isFullscreen"
+        @click="toggleFullscreen()"
+        class="fixed inset-0 z-[1000] bg-black/95 flex flex-col items-center justify-center cursor-pointer select-none text-white transition-all duration-500"
+    >
+        <div class="text-center space-y-4 max-w-sm p-6">
+            <!-- Tap Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-[color:var(--color-accent)] animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+            </svg>
+            <h2 class="text-xl font-bold tracking-tight">Tap to Start Kiosk Mode</h2>
+            <p class="text-xs opacity-70">This will launch the Immich Slideshow in fullscreen.</p>
         </div>
-    </template>
+    </div>
 </div>
 
 <script src="/js/toast-helper.js"></script>
@@ -233,7 +221,13 @@
                     this.isFullscreen = !!document.fullscreenElement
                 })
                 if (this.images.length > 0) {
-                    this.onSlideChanged()
+                    if (document.readyState === 'complete') {
+                        this.onSlideChanged()
+                    } else {
+                        window.addEventListener('load', () => {
+                            this.onSlideChanged()
+                        })
+                    }
                 } else {
                     this.emptyMessage = 'No images loaded. Check that your share URL is valid and the photo server is reachable.'
                     this.showToast('Failed to load photos from share URL. Check the server logs for details.', 'error')
@@ -361,15 +355,46 @@
                     // We don't start the standard image slide timer.
                 } else {
                     // Start timer for standard image slides
-                    let interval = this.slideIntervalMs
-                    if (this.isFirstLoad) {
-                        interval *= 2
-                        this.isFirstLoad = false
+                    const startImageTimer = () => {
+                        if (this.slideTimerId) {
+                            clearInterval(this.slideTimerId)
+                        }
+                        let interval = this.slideIntervalMs
+                        if (this.isFirstLoad) {
+                            interval *= 2
+                            this.isFirstLoad = false
+                        }
+                        this.slideTimerId = setInterval(
+                            () => this.nextImage(),
+                            interval
+                        )
                     }
-                    this.slideTimerId = setInterval(
-                        () => this.nextImage(),
-                        interval
-                    )
+
+                    // Check if current image is loaded
+                    this.$nextTick(() => {
+                        const imgEl = document.getElementById(`image-${this.currentIndex}`)
+                        if (imgEl) {
+                            if (imgEl.complete && imgEl.naturalWidth !== 0) {
+                                startImageTimer()
+                            } else {
+                                function onImageLoad() {
+                                    startImageTimer()
+                                    imgEl.removeEventListener('load', onImageLoad)
+                                    imgEl.removeEventListener('error', onImageError)
+                                }
+                                function onImageError() {
+                                    // Start the timer anyway, so the slideshow doesn't get stuck on a broken image
+                                    startImageTimer()
+                                    imgEl.removeEventListener('load', onImageLoad)
+                                    imgEl.removeEventListener('error', onImageError)
+                                }
+                                imgEl.addEventListener('load', onImageLoad)
+                                imgEl.addEventListener('error', onImageError)
+                            }
+                        } else {
+                            startImageTimer()
+                        }
+                    })
                 }
             },
 
