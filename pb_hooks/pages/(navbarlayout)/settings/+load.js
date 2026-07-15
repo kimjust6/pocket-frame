@@ -82,19 +82,13 @@ module.exports = function (context) {
 
         return {
             isHome: false,
-            settings,
-            applications: [],
-            categories: [],
-            bookmarks: []
+            settings
         };
     } catch (e) {
         console.error("Failed in settings loader:", e);
         return {
             isHome: false,
-            settings: {},
-            applications: [],
-            categories: [],
-            bookmarks: []
+            settings: {}
         };
     }
 }

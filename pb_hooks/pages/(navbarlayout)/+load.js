@@ -461,10 +461,7 @@ module.exports = function (context) {
             images,
             shareInfo,
             statusText,
-            albumName,
-            applications: [],
-            categories: [],
-            bookmarksByCategory: []
+            albumName
         };
     } catch (e) {
         log('Failed to load startpage data exception: ' + e.message);
@@ -474,10 +471,7 @@ module.exports = function (context) {
             settings: {},
             images: [],
             shareInfo: null,
-            statusText: 'Failed to load settings.',
-            applications: [],
-            categories: [],
-            bookmarksByCategory: []
+            statusText: 'Failed to load settings.'
         };
     }
 }
