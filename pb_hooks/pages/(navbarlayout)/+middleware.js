@@ -86,7 +86,7 @@ module.exports = function (context) {
             },
             {
                 name: 'description',
-                content: "Your self-hosted photo frame and slideshow manager.",
+                content: "Turn your tablet into a photo frame to display your photos. Pocket Frame is a self-hosted, lightweight slideshow and photo frame manager.",
             },
             { name: 'url', content: BASE_URL },
 
@@ -106,7 +106,7 @@ module.exports = function (context) {
             { name: 'og:image:height', content: '425' },
             {
                 name: 'og:description',
-                content: "Your self-hosted photo frame and slideshow manager.",
+                content: "Turn your tablet into a photo frame to display your photos. Pocket Frame is a self-hosted, lightweight slideshow and photo frame manager.",
             },
             { name: 'og:site_name', content: 'Pocket Frame' },
             { name: 'og:locale', content: 'en_US' },
@@ -120,7 +120,7 @@ module.exports = function (context) {
             },
             {
                 name: 'twitter:description',
-                content: "Your self-hosted photo frame and slideshow manager.",
+                content: "Turn your tablet into a photo frame to display your photos. Pocket Frame is a self-hosted, lightweight slideshow and photo frame manager.",
             },
             {
                 name: 'twitter:image',

@@ -1,7 +1,7 @@
 {
     "description": "DO NOT DELETE THIS FILE. This file is used to keep track of which files have been synced in the most recent deployment. If you delete this file a resync will need to be done (which can take a while) - read more: https://github.com/SamKirkland/FTP-Deploy-Action",
     "version": "1.0.0",
-    "generatedTime": 1784149327099,
+    "generatedTime": 1784171703155,
     "data": [
         {
             "type": "file",
@@ -30,8 +30,8 @@
         {
             "type": "file",
             "name": "pb_public/sw.js",
-            "size": 3911,
-            "hash": "095e61281bb1261ecb8d7734bf6896e3dfb97c1dd5e16cc8a1766bfb8bf51f5b"
+            "size": 4219,
+            "hash": "4477fe1e7a2de8a1bbd857098c8fe9f15a3178e92f4f0e26733aab4e6f06069d"
         },
         {
             "type": "file",
@@ -592,6 +592,12 @@
             "name": "pb_hooks/lib"
         },
         {
+            "type": "file",
+            "name": "pb_hooks/cache_control.pb.js",
+            "size": 770,
+            "hash": "1293c700a1a5fa979bf2d0532989477f8312aa647a82f5c485283a99046a914c"
+        },
+        {
             "type": "folder",
             "name": "pb_hooks/pages/register"
         },
@@ -756,8 +762,8 @@
         {
             "type": "file",
             "name": "pb_hooks/pages/_private/head.ejs",
-            "size": 3289,
-            "hash": "e4ca91f415c37a68ecdba44814604259dc9a3d7061595d92f77c16e106cf3227"
+            "size": 5714,
+            "hash": "6c603fbdc37f1ae607b93699bdf280c477418d27802ff83fb32d6a9815a69c57"
         },
         {
             "type": "file",
@@ -794,20 +800,20 @@
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/index.ejs",
-            "size": 25038,
-            "hash": "9538ff8a4acc0b29e319431fa277e9ca97d2d1745867fa8db96c8c1691ae1ec6"
+            "size": 25534,
+            "hash": "42224e824729d8ac3f8effcda659dc358d7cc7f07c473868bce75cbe86588c0e"
         },
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/+middleware.js",
-            "size": 4862,
-            "hash": "a7324c240e83b2a4f7257f64086218dc3630f5d79e3a46050d2bdfb9f2c0c144"
+            "size": 5120,
+            "hash": "40bceb7a46264c9e652254954cd6dce61fdb64c674177c53633caa8e0ce58c69"
         },
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/+load.js",
-            "size": 35591,
-            "hash": "9b6eadbfd50265826abc1758bfb60c33703fb8b560c8a6cc76266d6ffa74c75c"
+            "size": 36876,
+            "hash": "20ad291dbbdd009bab39fcdac77d7f31b407b8f196ae1838911cec042364d1ab"
         },
         {
             "type": "file",
