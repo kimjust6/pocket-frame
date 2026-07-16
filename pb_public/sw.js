@@ -17,9 +17,15 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim());
 });
 
+let settingsCacheTtl = null;
+
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
+
+    if (request.mode === 'navigate') {
+        settingsCacheTtl = null; // Clear cached TTL on page navigation/reload
+    }
 
     // Determine if it is an image request
     const isImageRequest = 
@@ -31,34 +37,42 @@ self.addEventListener('fetch', (event) => {
             caches.open(CACHE_NAME).then((cache) => {
                 return cache.match(request).then((cachedResponse) => {
                     if (cachedResponse) {
+                        const checkExpiration = (ttl) => {
+                            const dateHeader = cachedResponse.headers.get('date');
+                            if (dateHeader && ttl) {
+                                const age = Date.now() - new Date(dateHeader).getTime();
+                                if (age > ttl) {
+                                    // Cache expired! Fetch from network and update cache.
+                                    // Fallback to cached version if network fails.
+                                    return fetch(request).then((networkResponse) => {
+                                        if (networkResponse && (networkResponse.status === 200 || networkResponse.status === 0)) {
+                                            cache.put(request, networkResponse.clone());
+                                            return networkResponse;
+                                        }
+                                        return cachedResponse;
+                                    }).catch(() => {
+                                        return cachedResponse;
+                                    });
+                                }
+                            }
+                            return cachedResponse;
+                        };
+
+                        if (settingsCacheTtl !== null) {
+                            return checkExpiration(settingsCacheTtl);
+                        }
+
                         return caches.open('pocket-frame-settings-cache').then((settingsCache) => {
                             return settingsCache.match('/settings.json').then((settingsResponse) => {
                                 if (settingsResponse) {
                                     return settingsResponse.json().then((settings) => {
-                                        const ttl = settings.cache_ttl * 1000; // in ms
-                                        const dateHeader = cachedResponse.headers.get('date');
-                                        if (dateHeader && ttl) {
-                                            const age = Date.now() - new Date(dateHeader).getTime();
-                                            if (age > ttl) {
-                                                // Cache expired! Fetch from network and update cache.
-                                                // Fallback to cached version if network fails.
-                                                return fetch(request).then((networkResponse) => {
-                                                    if (networkResponse && (networkResponse.status === 200 || networkResponse.status === 0)) {
-                                                        cache.put(request, networkResponse.clone());
-                                                        return networkResponse;
-                                                    }
-                                                    return cachedResponse;
-                                                }).catch(() => {
-                                                    return cachedResponse;
-                                                });
-                                            }
-                                        }
-                                        return cachedResponse;
-                                    }).catch(() => cachedResponse);
+                                        settingsCacheTtl = (settings.cache_ttl || 604800) * 1000;
+                                        return checkExpiration(settingsCacheTtl);
+                                    }).catch(() => checkExpiration(604800000));
                                 }
-                                return cachedResponse;
+                                return checkExpiration(604800000);
                             });
-                        }).catch(() => cachedResponse);
+                        }).catch(() => checkExpiration(604800000));
                     }
 
                     return fetch(request).then((networkResponse) => {

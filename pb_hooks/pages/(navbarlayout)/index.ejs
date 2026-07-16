@@ -23,7 +23,7 @@
                     <div class="absolute inset-0 w-full h-full flex items-center justify-center">
                         <!-- Blurred background -->
                         <img
-                            :src="loadedIndices.includes(idx) ? img.thumbnailUrl : ''"
+                            :src="loadedIndices.includes(idx) ? img.blurUrl : ''"
                             alt=""
                             class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
                             loading="lazy"
@@ -34,6 +34,7 @@
                             x-show="img.type === 'IMAGE'"
                             :src="(img.type === 'IMAGE' && loadedIndices.includes(idx)) ? img.url : ''"
                             :id="`image-${idx}`"
+                            :fetchpriority="idx === 0 ? 'high' : 'auto'"
                             alt="Immich slideshow image"
                             class="relative h-full w-full object-contain z-10"
                             referrerpolicy="no-referrer"
@@ -258,6 +259,7 @@
                     const atQuery = this.shareInfo.atToken ? `&at=${encodeURIComponent(this.shareInfo.atToken)}` : '';
                     this.images = this.images.map(img => {
                         if (img.id) {
+                            const blurUrl = `${origin}/api/assets/${img.id}/thumbnail?key=${shareKey}&size=thumbnail${atQuery}`;
                             const thumbnailUrl = `${origin}/api/assets/${img.id}/thumbnail?key=${shareKey}&size=preview${atQuery}`;
                             const url = img.type === 'VIDEO'
                                 ? `${origin}/api/assets/${img.id}/video/playback?key=${shareKey}${atQuery}`
@@ -265,6 +267,7 @@
                             return {
                                 url,
                                 thumbnailUrl,
+                                blurUrl,
                                 type: img.type,
                                 duration: img.duration || 0
                             };
@@ -276,6 +279,9 @@
                     this.images = this.images.map(img => {
                         if (img.url && !img.thumbnailUrl) {
                             img.thumbnailUrl = img.url;
+                        }
+                        if (img.url && !img.blurUrl) {
+                            img.blurUrl = img.url;
                         }
                         return img;
                     });
@@ -377,9 +383,11 @@
             markLoaded(index) {
                 const len = this.images.length;
                 if (len === 0) return;
+                const prev2 = (index - 2 + len) % len;
                 const prev = (index - 1 + len) % len;
                 const next = (index + 1) % len;
-                [prev, index, next].forEach(idx => {
+                const next2 = (index + 2) % len;
+                [prev2, prev, index, next, next2].forEach(idx => {
                     if (!this.loadedIndices.includes(idx)) {
                         this.loadedIndices.push(idx);
                     }
