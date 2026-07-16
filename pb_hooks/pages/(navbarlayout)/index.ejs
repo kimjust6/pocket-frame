@@ -21,14 +21,6 @@
             <div class="w-screen h-screen flex-shrink-0 relative overflow-hidden bg-black flex items-center justify-center">
                 <template x-if="isNear(idx) || loadedIndices.includes(idx)">
                     <div class="absolute inset-0 w-full h-full flex items-center justify-center">
-                        <!-- Blurred background -->
-                        <img
-                            :src="loadedIndices.includes(idx) ? img.blurUrl : ''"
-                            alt=""
-                            class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
-                            loading="lazy"
-                            referrerpolicy="no-referrer"
-                        />
                         <!-- Foreground Image -->
                         <img
                             x-show="img.type === 'IMAGE'"
@@ -47,7 +39,7 @@
                             preload="auto"
                             muted
                             playsinline
-                            :controls="showControls"
+                            :controls="showControls && userInteracted"
                             @mousemove="keepControlsAlive()"
                             @click="keepControlsAlive()"
                             @touchstart="keepControlsAlive()"
@@ -223,6 +215,7 @@
             slideTimerId: null,
             slideIntervalMs: slideData.slideIntervalMs || 7000,
             showControls: true,
+            userInteracted: false,
             controlsTimeout: null,
             videoRepeatThreshold: slideData.videoRepeatThreshold || 5,
             videoRepeatCount: slideData.videoRepeatCount || 3,
@@ -250,7 +243,7 @@
             },
 
             init() {
-                this.keepControlsAlive()
+                this.keepControlsAlive(false)
                 document.addEventListener('fullscreenchange', () => {
                     this.isFullscreen = !!document.fullscreenElement
                 })
@@ -304,8 +297,11 @@
                 }
             },
 
-            keepControlsAlive() {
+            keepControlsAlive(isUserInteraction = true) {
                 this.showControls = true
+                if (isUserInteraction) {
+                    this.userInteracted = true
+                }
                 if (this.controlsTimeout) {
                     clearTimeout(this.controlsTimeout)
                 }
