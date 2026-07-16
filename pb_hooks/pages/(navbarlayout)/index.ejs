@@ -47,7 +47,10 @@
                             preload="auto"
                             muted
                             playsinline
-                            controls
+                            :controls="showControls"
+                            @mousemove="keepControlsAlive()"
+                            @click="keepControlsAlive()"
+                            @touchstart="keepControlsAlive()"
                             @canplay="if (idx === currentIndex) { const v = $event.target; v.muted = true; setTimeout(() => { v.play().then(() => { v.muted = false }).catch(() => { v.muted = false }) }, 150) }"
                             @ended="onVideoEnded($event)"
                             class="relative h-full w-full object-contain z-10 pointer-events-auto"
