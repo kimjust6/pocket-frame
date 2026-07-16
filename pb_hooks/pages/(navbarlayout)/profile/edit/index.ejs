@@ -121,11 +121,7 @@
                         <label class="label">
                             <span class="label-text font-medium">Member Since</span>
                         </label>
-                        <input type="text" value="<%= (() => {
-                            const d = new Date(data.profile.getString('created'));
-                            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                            return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-                        })() %>" class="input input-bordered w-full bg-base-200/50 cursor-not-allowed" disabled />
+                        <input type="text" value="<%= data.formatDateTime(data.profile.getString('created')) %>" class="input input-bordered w-full bg-base-200/50 cursor-not-allowed" disabled />
                     </div>
 
                     <!-- Actions -->

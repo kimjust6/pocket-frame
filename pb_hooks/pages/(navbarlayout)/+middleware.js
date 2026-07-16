@@ -1,7 +1,7 @@
 const common = require(__hooks + '/lib/common.js')
 
 // Configure your site URL here (no trailing slash)
-const BASE_URL = 'https://link.jkim.win';
+const BASE_URL = 'https://frame.jkim.win';
 
 /**
  * Middleware function to provide site metadata and global data.
@@ -31,9 +31,6 @@ module.exports = function (context) {
         color_primary: "#d9d9d9",
         color_accent: "#50fbc2",
         color_background: "#282525",
-        weather_lat: "43.6532",
-        weather_lon: "-79.3832",
-        weather_unit: "celsius",
         search_engine: "https://www.google.com/search?q=",
         fallback_url: "",
         randomize: false,
@@ -56,9 +53,6 @@ module.exports = function (context) {
                 color_primary: record.getString("color_primary") || settings.color_primary,
                 color_accent: record.getString("color_accent") || settings.color_accent,
                 color_background: record.getString("color_background") || settings.color_background,
-                weather_lat: record.getString("weather_lat") || settings.weather_lat,
-                weather_lon: record.getString("weather_lon") || settings.weather_lon,
-                weather_unit: record.getString("weather_unit") || settings.weather_unit,
                 search_engine: record.getString("search_engine") || settings.search_engine,
                 fallback_url: record.getString("fallback_url") || settings.fallback_url,
                 randomize: record.getBool("randomize"),
@@ -92,7 +86,7 @@ module.exports = function (context) {
             },
             {
                 name: 'description',
-                content: "Your self-hosted photo frame and slideshow manager.",
+                content: "Turn your tablet into a photo frame to display your photos. Pocket Frame is a self-hosted, lightweight slideshow and photo frame manager.",
             },
             { name: 'url', content: BASE_URL },
 
@@ -112,7 +106,7 @@ module.exports = function (context) {
             { name: 'og:image:height', content: '425' },
             {
                 name: 'og:description',
-                content: "Your self-hosted photo frame and slideshow manager.",
+                content: "Turn your tablet into a photo frame to display your photos. Pocket Frame is a self-hosted, lightweight slideshow and photo frame manager.",
             },
             { name: 'og:site_name', content: 'Pocket Frame' },
             { name: 'og:locale', content: 'en_US' },
@@ -126,7 +120,7 @@ module.exports = function (context) {
             },
             {
                 name: 'twitter:description',
-                content: "Your self-hosted photo frame and slideshow manager.",
+                content: "Turn your tablet into a photo frame to display your photos. Pocket Frame is a self-hosted, lightweight slideshow and photo frame manager.",
             },
             {
                 name: 'twitter:image',

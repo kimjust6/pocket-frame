@@ -79,6 +79,7 @@ module.exports = function (context) {
     }
 
     return {
-        profile
+        profile,
+        formatDateTime: common.formatDateTime
     }
 }

@@ -7,27 +7,95 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Dancing+Script:wght@700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"
     rel="stylesheet" />
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- PocketBase SDK (deferred to prevent render blocking) -->
+<script src="https://unpkg.com/pocketbase@0.21.1/dist/pocketbase.umd.js" defer></script>
 
-<!-- PocketBase SDK for realtime subscriptions -->
-<script src="https://unpkg.com/pocketbase@0.21.1/dist/pocketbase.umd.js"></script>
+<%
+const pageMetadata = (locals.data && locals.data.metadata) ? locals.data.metadata : [];
+const defaultTitle = 'Pocket Frame';
+const defaultDesc = 'Turn your tablet into a photo frame to display your photos. Pocket Frame is a self-hosted, lightweight slideshow and photo frame manager.';
+const defaultUrl = 'https://frame.jkim.win';
+const defaultImage = defaultUrl + asset('/og-image.webp');
 
-<% if (data.metadata) { %>
-    <% data.metadata.forEach(function(tag) { %>
+// Check if specific tags are defined in the provided metadata
+const hasTitle = pageMetadata.some(tag => tag.name === 'title');
+const hasDescription = pageMetadata.some(tag => tag.name === 'description');
+const hasOgTitle = pageMetadata.some(tag => tag.name === 'og:title');
+const hasOgDescription = pageMetadata.some(tag => tag.name === 'og:description');
+const hasOgType = pageMetadata.some(tag => tag.name === 'og:type');
+const hasOgUrl = pageMetadata.some(tag => tag.name === 'og:url');
+const hasOgImage = pageMetadata.some(tag => tag.name === 'og:image');
+const hasOgSiteName = pageMetadata.some(tag => tag.name === 'og:site_name');
+const hasOgLocale = pageMetadata.some(tag => tag.name === 'og:locale');
+const hasTwitterCard = pageMetadata.some(tag => tag.name === 'twitter:card');
+const hasTwitterTitle = pageMetadata.some(tag => tag.name === 'twitter:title');
+const hasTwitterDesc = pageMetadata.some(tag => tag.name === 'twitter:description');
+const hasTwitterImage = pageMetadata.some(tag => tag.name === 'twitter:image');
+%>
+
+<!-- Default/Dynamic Metadata -->
+<% if (!hasTitle) { %>
+    <title><%= defaultTitle %></title>
+<% } else { %>
+    <title><%= pageMetadata.find(x => x.name === 'title').content %></title>
+<% } %>
+
+<% if (!hasDescription) { %>
+    <meta name="description" content="<%= defaultDesc %>" />
+<% } %>
+<% if (!hasOgTitle) { %>
+    <meta property="og:title" content="<%= defaultTitle %>" />
+<% } %>
+<% if (!hasOgDescription) { %>
+    <meta property="og:description" content="<%= defaultDesc %>" />
+<% } %>
+<% if (!hasOgType) { %>
+    <meta property="og:type" content="website" />
+<% } %>
+<% if (!hasOgUrl) { %>
+    <meta property="og:url" content="<%= defaultUrl %>" />
+<% } %>
+<% if (!hasOgImage) { %>
+    <meta property="og:image" content="<%= defaultImage %>" />
+    <meta property="og:image:alt" content="Pocket Frame" />
+    <meta property="og:image:width" content="637" />
+    <meta property="og:image:height" content="425" />
+<% } %>
+<% if (!hasOgSiteName) { %>
+    <meta property="og:site_name" content="Pocket Frame" />
+<% } %>
+<% if (!hasOgLocale) { %>
+    <meta property="og:locale" content="en_US" />
+<% } %>
+<% if (!hasTwitterCard) { %>
+    <meta name="twitter:card" content="summary_large_image" />
+<% } %>
+<% if (!hasTwitterTitle) { %>
+    <meta name="twitter:title" content="<%= defaultTitle %>" />
+<% } %>
+<% if (!hasTwitterDesc) { %>
+    <meta name="twitter:description" content="<%= defaultDesc %>" />
+<% } %>
+<% if (!hasTwitterImage) { %>
+    <meta name="twitter:image" content="<%= defaultImage %>" />
+<% } %>
+
+<% pageMetadata.forEach(function(tag) { %>
+    <% if (tag.name !== 'title') { %>
+        <% 
+        let content = tag.content;
+        if ((tag.name === 'og:image' || tag.name === 'twitter:image') && content.endsWith('/og-image.webp')) {
+            const base = content.substring(0, content.length - '/og-image.webp'.length);
+            content = base + asset('/og-image.webp');
+        }
+        %>
         <% if (tag.name.startsWith('og:') || tag.name.startsWith('twitter:')) { %>
-            <meta property="<%= tag.name %>" content="<%= tag.content %>" />
-            <% } else { %>
-                <meta name="<%= tag.name %>" content="<%= tag.content %>" />
-                <% } %>
-                    <% }); %>
-                        <% } %>
-
-                            <title>
-                                <%= data.metadata?.find(x=> x.name === 'title')?.content || 'Pocket Frame' %>
-                            </title>
+            <meta property="<%= tag.name %>" content="<%= content %>" />
+        <% } else { %>
+            <meta name="<%= tag.name %>" content="<%= content %>" />
+        <% } %>
+    <% } %>
+<% }); %>
 
                             <link href="<%=asset('/app.css')%>" rel="stylesheet" />
                             <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
@@ -44,7 +112,7 @@
                                          if ('caches' in window) {
                                              caches.open('pocket-frame-settings-cache').then(function(cache) {
                                                  cache.put('/settings.json', new Response(JSON.stringify({
-                                                     cache_ttl: <%= (locals.settings && typeof locals.settings.cache_ttl !== 'undefined') ? locals.settings.cache_ttl : 604800 %>
+                                                     cache_ttl: parseInt("<%= (locals.settings && typeof locals.settings.cache_ttl !== 'undefined') ? locals.settings.cache_ttl : 604800 %>", 10)
                                                  }), {
                                                      headers: { 'Content-Type': 'application/json' }
                                                  }));

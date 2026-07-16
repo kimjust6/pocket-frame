@@ -1,16 +1,14 @@
-# Flame Startpage Clone
+# Pocket Frame
 
-**Flame Startpage Clone** is a self-hosted, lightweight, and customizable startpage and bookmarks manager designed for your home server. Inspired by Flame, it lets you organize your daily applications and bookmarked links in one gorgeous dashboard.
+**Pocket Frame** is a self-hosted, lightweight, and customizable slideshow and photo frame manager designed for your home server. Inspired by digital picture frames, it lets you display your photos and videos (with support for Immich albums) in a gorgeous dashboard.
 
 ## Features
 
--   **Clean Dashboard**: Centered search bar with quick keyboard filtering for instant access to your apps and bookmarks.
--   **Applications Grid**: Display cards for your self-hosted services, complete with custom title descriptions and inline SVGs.
--   **Grouped Bookmarks**: Categorize links (e.g. documents, repositories, news) with custom icons.
--   **Weather Widget**: Integrated weather checking powered by the free Open-Meteo API.
--   **Settings Management**: A comprehensive admin dashboard to configure theme colors (Primary, Accent, Background), weather latitude/longitude, add/edit/delete applications, categories, and bookmarks.
+-   **Slideshow Dashboard**: Smooth transitions, touch/keyboard controls, and full-screen kiosk mode for viewing shared photo albums.
+-   **Immich Support**: Native integration to stream photos and videos directly from Immich share links.
+-   **Settings Management**: A comprehensive admin dashboard to configure theme colors (Primary, Accent, Background), slide transition timing, cache settings, and autoplay options.
 -   **Secure & Private**: Optional authentication to secure settings management.
--   **Modern Design**: Sleek layout, custom variables for custom color branding, responsive layout.
+-   **Modern Design**: Sleek responsive layout, custom variables for custom color branding, and smooth transitions.
 
 ## Tech Stack
 

@@ -307,12 +307,22 @@
     </div>
 </div>
 
+<script id="settings-data" type="application/json">
+    <%- JSON.stringify({
+        settings: data.settings || {},
+        userId: locals.auth ? locals.auth.id : ""
+    }) %>
+</script>
+
 <script src="/js/toast-helper.js"></script>
 <script>
     function settingsManager() {
+        const dataEl = document.getElementById('settings-data');
+        const settingsData = dataEl ? JSON.parse(dataEl.textContent) : {};
+
         return window.withToastHelpers({
-            settings: <%- JSON.stringify(data.settings) %>,
-            userId: '<%= locals.auth ? locals.auth.id : "" %>',
+            settings: settingsData.settings || {},
+            userId: settingsData.userId || '',
             pb: null,
             clearingCache: false,
             cacheSizeText: 'Checking cache...',

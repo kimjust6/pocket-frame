@@ -60,10 +60,9 @@
             }
 
             const isProdHost =
-                window.location.hostname === 'link.jkim.win' ||
-                window.location.hostname === 'www.link.jkim.win'
+                window.location.hostname === 'frame.jkim.win' 
             const canonicalOrigin = isProdHost
-                ? 'https://link.jkim.win'
+                ? 'https://frame.jkim.win'
                 : window.location.origin
             const redirectURL = canonicalOrigin + '/auth/oauth/redirect'
             const authUrl = provider.authURL + encodeURIComponent(redirectURL)

@@ -11,9 +11,6 @@ export const Collections = {
 	Mfas: "_mfas",
 	Otps: "_otps",
 	Superusers: "_superusers",
-	Applications: "applications",
-	BookmarkCategories: "bookmark_categories",
-	Bookmarks: "bookmarks",
 	FlameSettings: "flame_settings",
 	Users: "users",
 } as const
@@ -97,37 +94,6 @@ export type SuperusersRecord = {
 	verified?: boolean
 }
 
-export type ApplicationsRecord = {
-	created: IsoAutoDateString
-	description?: string
-	icon?: string
-	id: string
-	name: string
-	order?: number
-	updated: IsoAutoDateString
-	url: string
-	user?: RecordIdString
-}
-
-export type BookmarkCategoriesRecord = {
-	created: IsoAutoDateString
-	id: string
-	name: string
-	order?: number
-	updated: IsoAutoDateString
-}
-
-export type BookmarksRecord = {
-	category: RecordIdString
-	created: IsoAutoDateString
-	icon?: string
-	id: string
-	name: string
-	order?: number
-	updated: IsoAutoDateString
-	url: string
-	user?: RecordIdString
-}
 
 export type FlameSettingsRecord = {
 	autoplay_fullscreen?: boolean
@@ -147,9 +113,6 @@ export type FlameSettingsRecord = {
 	user?: RecordIdString
 	video_repeat_count?: number
 	video_repeat_threshold?: number
-	weather_lat?: string
-	weather_lon?: string
-	weather_unit?: string
 }
 
 export type UsersRecord = {
@@ -174,9 +137,6 @@ export type ExternalauthsResponse<Texpand = unknown> = Required<ExternalauthsRec
 export type MfasResponse<Texpand = unknown> = Required<MfasRecord> & BaseSystemFields<Texpand>
 export type OtpsResponse<Texpand = unknown> = Required<OtpsRecord> & BaseSystemFields<Texpand>
 export type SuperusersResponse<Texpand = unknown> = Required<SuperusersRecord> & AuthSystemFields<Texpand>
-export type ApplicationsResponse<Texpand = unknown> = Required<ApplicationsRecord> & BaseSystemFields<Texpand>
-export type BookmarkCategoriesResponse<Texpand = unknown> = Required<BookmarkCategoriesRecord> & BaseSystemFields<Texpand>
-export type BookmarksResponse<Texpand = unknown> = Required<BookmarksRecord> & BaseSystemFields<Texpand>
 export type FlameSettingsResponse<Texpand = unknown> = Required<FlameSettingsRecord> & BaseSystemFields<Texpand>
 export type UsersResponse<Texpand = unknown> = Required<UsersRecord> & AuthSystemFields<Texpand>
 
@@ -188,9 +148,6 @@ export type CollectionRecords = {
 	_mfas: MfasRecord
 	_otps: OtpsRecord
 	_superusers: SuperusersRecord
-	applications: ApplicationsRecord
-	bookmark_categories: BookmarkCategoriesRecord
-	bookmarks: BookmarksRecord
 	flame_settings: FlameSettingsRecord
 	users: UsersRecord
 }
@@ -201,9 +158,6 @@ export type CollectionResponses = {
 	_mfas: MfasResponse
 	_otps: OtpsResponse
 	_superusers: SuperusersResponse
-	applications: ApplicationsResponse
-	bookmark_categories: BookmarkCategoriesResponse
-	bookmarks: BookmarksResponse
 	flame_settings: FlameSettingsResponse
 	users: UsersResponse
 }

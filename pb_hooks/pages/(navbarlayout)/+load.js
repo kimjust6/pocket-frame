@@ -27,38 +27,48 @@ function getCacheTtlMs(settings) {
 module.exports = function (context) {
     // Evict expired entries from Go-native store to optimize memory usage
     const nowTime = Date.now();
-    let cacheKeys = [];
+    let lastEviction = 0;
     try {
-        const rawKeys = $app.store().get("flame_cache_keys");
-        if (rawKeys) {
-            cacheKeys = JSON.parse(rawKeys);
-        }
+        lastEviction = parseInt($app.store().get("flame_cache_last_eviction") || "0", 10);
     } catch (e) {}
 
-    const nextCacheKeys = [];
-    let cacheKeysChanged = false;
-    for (let i = 0; i < cacheKeys.length; i++) {
-        const key = cacheKeys[i];
+    if (nowTime - lastEviction > 300000) { // Only run cache eviction check every 5 minutes
+        let cacheKeys = [];
         try {
-            const rawCache = $app.store().get("flame_cache_" + key);
-            if (rawCache) {
-                const cached = JSON.parse(rawCache);
-                if (cached.expiresAt < nowTime) {
-                    $app.store().remove("flame_cache_" + key);
-                    cacheKeysChanged = true;
+            const rawKeys = $app.store().get("flame_cache_keys");
+            if (rawKeys) {
+                cacheKeys = JSON.parse(rawKeys);
+            }
+        } catch (e) {}
+
+        const nextCacheKeys = [];
+        let cacheKeysChanged = false;
+        for (let i = 0; i < cacheKeys.length; i++) {
+            const key = cacheKeys[i];
+            try {
+                const rawCache = $app.store().get("flame_cache_" + key);
+                if (rawCache) {
+                    const cached = JSON.parse(rawCache);
+                    if (cached.expiresAt < nowTime) {
+                        $app.store().remove("flame_cache_" + key);
+                        cacheKeysChanged = true;
+                    } else {
+                        nextCacheKeys.push(key);
+                    }
                 } else {
-                    nextCacheKeys.push(key);
+                    cacheKeysChanged = true;
                 }
-            } else {
+            } catch (e) {
+                $app.store().remove("flame_cache_" + key);
                 cacheKeysChanged = true;
             }
-        } catch (e) {
-            $app.store().remove("flame_cache_" + key);
-            cacheKeysChanged = true;
         }
-    }
-    if (cacheKeysChanged) {
-        $app.store().set("flame_cache_keys", JSON.stringify(nextCacheKeys));
+        if (cacheKeysChanged) {
+            $app.store().set("flame_cache_keys", JSON.stringify(nextCacheKeys));
+        }
+        try {
+            $app.store().set("flame_cache_last_eviction", nowTime.toString());
+        } catch (e) {}
     }
 
     const logs = [];
@@ -94,9 +104,6 @@ module.exports = function (context) {
             color_primary: "#d9d9d9",
             color_accent: "#50fbc2",
             color_background: "#282525",
-            weather_lat: "43.6532",
-            weather_lon: "-79.3832",
-            weather_unit: "celsius",
             search_engine: "https://www.google.com/search?q=",
             fallback_url: "",
             randomize: false,
@@ -123,9 +130,6 @@ module.exports = function (context) {
                         color_primary: record.getString("color_primary") || settings.color_primary,
                         color_accent: record.getString("color_accent") || settings.color_accent,
                         color_background: record.getString("color_background") || settings.color_background,
-                        weather_lat: record.getString("weather_lat") || settings.weather_lat,
-                        weather_lon: record.getString("weather_lon") || settings.weather_lon,
-                        weather_unit: record.getString("weather_unit") || settings.weather_unit,
                         search_engine: record.getString("search_engine") || settings.search_engine,
                         fallback_url: record.getString("fallback_url") || settings.fallback_url,
                         randomize: record.getBool("randomize"),
@@ -297,6 +301,12 @@ module.exports = function (context) {
                         albumName = cached.albumName || "";
                         statusText = `Loaded ${rawAssets.length} items from Immich (stale cache - API temporarily unavailable).`;
                         log("Live fetch failed, using stale cached Immich data (" + rawAssets.length + " items)");
+                        try {
+                            cached.expiresAt = now + 300000; // Extend expired cache by 5 minutes to avoid rapid retries
+                            $app.store().set("flame_cache_" + cacheKey, JSON.stringify(cached));
+                        } catch (e) {
+                            log("Failed to extend stale cache: " + e.message);
+                        }
                     } else {
                         log("No Immich assets found.");
                     }
@@ -368,6 +378,12 @@ module.exports = function (context) {
                         albumName = cached.albumName || "Amazon Photos";
                         statusText = `Loaded ${rawAssets.length} items from Amazon Photos (stale cache - API temporarily unavailable).`;
                         log("Live fetch failed, using stale cached Amazon Photos data (" + rawAssets.length + " items)");
+                        try {
+                            cached.expiresAt = now + 300000; // Extend expired cache by 5 minutes to avoid rapid retries
+                            $app.store().set("flame_cache_" + cacheKey, JSON.stringify(cached));
+                        } catch (e) {
+                            log("Failed to extend stale Amazon Photos cache: " + e.message);
+                        }
                     } else {
                         statusText = 'Unable to load images from Amazon Photos fallback.';
                         log("fetchAmazonPhotos returned empty or null and no cache available.");
@@ -461,10 +477,7 @@ module.exports = function (context) {
             images,
             shareInfo,
             statusText,
-            albumName,
-            applications: [],
-            categories: [],
-            bookmarksByCategory: []
+            albumName
         };
     } catch (e) {
         log('Failed to load startpage data exception: ' + e.message);
@@ -474,10 +487,7 @@ module.exports = function (context) {
             settings: {},
             images: [],
             shareInfo: null,
-            statusText: 'Failed to load settings.',
-            applications: [],
-            categories: [],
-            bookmarksByCategory: []
+            statusText: 'Failed to load settings.'
         };
     }
 }
