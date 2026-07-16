@@ -213,6 +213,7 @@
             statusText: slideData.statusText || 'Loading slideshow...',
             emptyMessage: 'No images loaded. Add an Immich share URL in Settings to start the slideshow.',
             slideTimerId: null,
+            videoWatchdogIntervalId: null,
             slideIntervalMs: slideData.slideIntervalMs || 7000,
             showControls: true,
             userInteracted: false,
@@ -400,6 +401,10 @@
                     clearInterval(this.slideTimerId)
                     this.slideTimerId = null
                 }
+                if (this.videoWatchdogIntervalId) {
+                    clearInterval(this.videoWatchdogIntervalId)
+                    this.videoWatchdogIntervalId = null
+                }
 
                 // Control video playback programmatically based on active index
                 const tryPlayVideo = () => {
@@ -432,8 +437,40 @@
 
                 const current = this.images[this.currentIndex]
                 if (current.type === 'VIDEO') {
-                    // Let the video end event transition to the next image automatically.
-                    // We don't start the standard image slide timer.
+                    // Start a watchdog to monitor video playback.
+                    // If video is stuck, tries to hit play. If still stuck, moves on after 15 seconds.
+                    let lastPlayheadPosition = -1
+                    let lastProgressTime = Date.now()
+                    const stuckTimeoutMs = 15000
+
+                    this.videoWatchdogIntervalId = setInterval(() => {
+                        const video = document.getElementById(`video-${this.currentIndex}`)
+                        if (!video) return
+
+                        // If user is interacting, suspend the watchdog
+                        if (this.showControls) {
+                            lastProgressTime = Date.now()
+                            lastPlayheadPosition = video.currentTime
+                            return
+                        }
+
+                        if (!video.paused && video.currentTime !== lastPlayheadPosition) {
+                            lastPlayheadPosition = video.currentTime
+                            lastProgressTime = Date.now()
+                        } else {
+                            if (video.paused) {
+                                video.play().catch(() => {})
+                            }
+
+                            const stuckDuration = Date.now() - lastProgressTime
+                            if (stuckDuration > stuckTimeoutMs) {
+                                console.warn(`Video stuck for ${stuckDuration}ms, moving to next slide.`)
+                                clearInterval(this.videoWatchdogIntervalId)
+                                this.videoWatchdogIntervalId = null
+                                this.nextImage()
+                            }
+                        }
+                    }, 5000)
                 } else {
                     // Start timer for standard image slides
                     const startImageTimer = () => {
