@@ -1,7 +1,7 @@
 const common = require(__hooks + '/lib/common.js')
 
 // Configure your site URL here (no trailing slash)
-const BASE_URL = 'https://link.jkim.win';
+const BASE_URL = 'https://frame.jkim.win';
 
 /**
  * Middleware function to provide site metadata and global data.
