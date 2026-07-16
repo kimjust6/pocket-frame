@@ -81,7 +81,7 @@ module.exports = function (context) {
                           $os.getenv("DEBUG_LOG") === "true" ||
                           (typeof $app !== 'undefined' && typeof $app.isDev === 'function' && $app.isDev());
             if (isDev || hasError) {
-                $os.writeFile("./loader_log.txt", logs.join("\n"), 0644);
+                $os.writeFile("./loader_log.txt", logs.join("\n"), 0o644);
             }
         } catch (e) { }
     };
@@ -218,7 +218,7 @@ module.exports = function (context) {
                                     log("Found " + buckets.length + " buckets.");
                                     let totalCount = 0;
                                     for (const bucket of buckets) {
-                                        if (totalCount >= 500) break; // Limit to 500 images for slideshow
+                                        if (totalCount >= 5000) break; // Limit to 5000 images for slideshow
                                         try {
                                             const bucketUrl = `${info.origin}/api/timeline/bucket?key=${encodedKey}&albumId=${albumId}&timeBucket=${encodeURIComponent(bucket.timeBucket)}${atQuery}`;
                                             log("Fetching bucket: " + bucket.timeBucket + " from " + bucketUrl);
@@ -777,40 +777,57 @@ function fetchAmazonPhotos(origin, shareId, log) {
         log("fetchAmazonPhotos folderId: " + folderId);
 
         log("fetchAmazonPhotos: fetching list of child nodes with tempLink=true...");
-        const itemsUrl = `${origin}/drive/v1/nodes/${folderId}/children?asset=ALL&limit=200&searchOnFamily=false&shareId=${shareId}&offset=0&resourceVersion=V2&ContentType=JSON&tempLink=true`;
-        const itemsRes = $http.send({
-            url: itemsUrl,
-            method: "GET",
-            headers,
-            timeout: 15
-        });
-        log("fetchAmazonPhotos items status: " + itemsRes.statusCode);
-        if (itemsRes.statusCode !== 200 || !itemsRes.json || !itemsRes.json.data) {
-            log("fetchAmazonPhotos items failed: " + itemsRes.raw);
-            return null;
-        }
-
-        const nodes = itemsRes.json.data;
-        log("fetchAmazonPhotos found " + nodes.length + " nodes");
-
         const images = [];
-        for (const node of nodes) {
-            if (node.status === "AVAILABLE" && node.tempLink) {
-                const isVideo = node.contentProperties && node.contentProperties.contentType && node.contentProperties.contentType.startsWith("video/");
-                const type = isVideo ? "VIDEO" : "IMAGE";
-                // Resolve the CDN proxy tempLink to the direct presigned URL.
-                // The CDN proxy (/cdproxy/templink/) has hotlink protection and blocks browser
-                // requests that include a Referer header. The presigned URL (/v2/download/presigned/)
-                // uses the same key but has no such restrictions (it's self-authenticating).
-                const presignedLink = node.tempLink.replace("/cdproxy/templink/", "/v2/download/presigned/");
-                const url = `${presignedLink}?shareId=${shareId}`;
-                images.push({
-                    url,
-                    type,
-                    duration: 0
-                });
+        let offset = 0;
+        const limit = 200;
+        let hasMore = true;
+
+        while (hasMore && images.length < 5000) {
+            const itemsUrl = `${origin}/drive/v1/nodes/${folderId}/children?asset=ALL&limit=${limit}&searchOnFamily=false&shareId=${shareId}&offset=${offset}&resourceVersion=V2&ContentType=JSON&tempLink=true`;
+            log("fetchAmazonPhotos: fetching children page at offset=" + offset + " url: " + itemsUrl);
+            const itemsRes = $http.send({
+                url: itemsUrl,
+                method: "GET",
+                headers,
+                timeout: 15
+            });
+            log("fetchAmazonPhotos items status: " + itemsRes.statusCode);
+            if (itemsRes.statusCode !== 200 || !itemsRes.json || !itemsRes.json.data) {
+                log("fetchAmazonPhotos items failed or empty at offset " + offset + ": " + (itemsRes.raw || ""));
+                break;
+            }
+
+            const nodes = itemsRes.json.data;
+            log("fetchAmazonPhotos found " + nodes.length + " nodes at offset " + offset);
+            if (nodes.length === 0) {
+                break;
+            }
+
+            for (const node of nodes) {
+                if (node.status === "AVAILABLE" && node.tempLink) {
+                    const isVideo = node.contentProperties && node.contentProperties.contentType && node.contentProperties.contentType.startsWith("video/");
+                    const type = isVideo ? "VIDEO" : "IMAGE";
+                    // Resolve the CDN proxy tempLink to the direct presigned URL.
+                    // The CDN proxy (/cdproxy/templink/) has hotlink protection and blocks browser
+                    // requests that include a Referer header. The presigned URL (/v2/download/presigned/)
+                    // uses the same key but has no such restrictions (it's self-authenticating).
+                    const presignedLink = node.tempLink.replace("/cdproxy/templink/", "/v2/download/presigned/");
+                    const url = `${presignedLink}?shareId=${shareId}`;
+                    images.push({
+                        url,
+                        type,
+                        duration: 0
+                    });
+                }
+            }
+
+            if (nodes.length < limit) {
+                hasMore = false;
+            } else {
+                offset += limit;
             }
         }
+
         return {
             images,
             albumName: (shareRes.json.nodeInfo && shareRes.json.nodeInfo.name) || "Amazon Photos Shared Album"
