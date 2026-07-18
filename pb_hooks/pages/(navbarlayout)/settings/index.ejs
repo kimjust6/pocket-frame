@@ -559,7 +559,14 @@
             </div>
         </div>
 
-        <div class="flex justify-end pt-4">
+        <div class="flex justify-end gap-3 pt-4">
+            <button
+                type="button"
+                @click="applySettings()"
+                class="btn btn-accent btn-outline btn-sm rounded-lg px-6 font-bold"
+            >
+                Apply
+            </button>
             <button
                 type="submit"
                 class="btn btn-accent btn-sm rounded-lg px-6 font-bold text-[color:var(--color-background)]"
@@ -916,6 +923,14 @@
             },
 
             async saveSettings() {
+                await this.performSave(true);
+            },
+
+            async applySettings() {
+                await this.performSave(false);
+            },
+
+            async performSave(redirect) {
                 try {
                     await this.pb.collection('flame_settings').update(this.settings.id, {
                         color_primary: this.settings.color_primary,
@@ -933,9 +948,11 @@
                         user: this.userId
                     });
                     this.showToast('Settings updated successfully!', 'success', 1200);
-                    setTimeout(() => {
-                        window.location.href = '/';
-                    }, 500);
+                    if (redirect) {
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 500);
+                    }
                 } catch (e) {
                     this.showToast('Failed to update settings: ' + e.message, 'error');
                 }

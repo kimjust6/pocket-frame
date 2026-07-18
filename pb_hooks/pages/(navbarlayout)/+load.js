@@ -44,23 +44,38 @@ module.exports = function (context) {
         const nextCacheKeys = [];
         let cacheKeysChanged = false;
         for (let i = 0; i < cacheKeys.length; i++) {
-            const key = cacheKeys[i];
-            try {
-                const rawCache = $app.store().get("flame_cache_" + key);
-                if (rawCache) {
-                    const cached = JSON.parse(rawCache);
-                    if (cached.expiresAt < nowTime) {
-                        $app.store().remove("flame_cache_" + key);
-                        cacheKeysChanged = true;
-                    } else {
-                        nextCacheKeys.push(key);
+            const entry = cacheKeys[i];
+            if (!entry) continue;
+
+            let key = "";
+            let expiresAt = 0;
+
+            if (typeof entry === 'object' && entry !== null && entry.key) {
+                key = entry.key;
+                expiresAt = entry.expiresAt || 0;
+            } else if (typeof entry === 'string') {
+                key = entry;
+                // For legacy keys (string), we load it once to parse and migrate or evict
+                try {
+                    const rawCache = $app.store().get("flame_cache_" + key);
+                    if (rawCache) {
+                        const cached = JSON.parse(rawCache);
+                        expiresAt = cached.expiresAt || 0;
                     }
-                } else {
-                    cacheKeysChanged = true;
-                }
-            } catch (e) {
+                } catch (e) {}
+                cacheKeysChanged = true; // Needs migration to object format
+            }
+
+            if (!key) {
+                cacheKeysChanged = true;
+                continue;
+            }
+
+            if (expiresAt < nowTime) {
                 $app.store().remove("flame_cache_" + key);
                 cacheKeysChanged = true;
+            } else {
+                nextCacheKeys.push({ key, expiresAt });
             }
         }
         if (cacheKeysChanged) {
@@ -278,17 +293,15 @@ module.exports = function (context) {
                                                 const ids = bucketRes.json.id;
                                                 const isImageArray = bucketRes.json.isImage || [];
                                                 const durationArray = bucketRes.json.duration || [];
-                                                const newAssets = [];
                                                 for (let i = 0; i < ids.length; i++) {
                                                     const isImg = isImageArray[i] !== false;
                                                     const durMs = durationArray[i] || 0;
-                                                    newAssets.push({
+                                                    assetIds.push({
                                                         id: ids[i],
                                                         type: isImg ? 'IMAGE' : 'VIDEO',
                                                         duration: durMs ? Math.round(durMs / 1000) : 0
                                                     });
                                                 }
-                                                assetIds = assetIds.concat(newAssets);
                                                 totalCount += ids.length;
                                                 log("Bucket " + bucket.timeBucket + " added " + ids.length + " assets. Total so far: " + totalCount);
                                             } else {
@@ -312,13 +325,7 @@ module.exports = function (context) {
                     }
 
                     if (assetIds.length > 0) {
-                        rawAssets = assetIds.map(asset => {
-                            return {
-                                id: asset.id,
-                                type: asset.type,
-                                duration: asset.duration || 0
-                            };
-                        });
+                        rawAssets = assetIds;
                         statusText = `Loaded ${rawAssets.length} item${rawAssets.length === 1 ? '' : 's'} from Immich.`;
                         log("Successfully loaded " + rawAssets.length + " items from Immich. Caching result.");
 
@@ -334,10 +341,26 @@ module.exports = function (context) {
                                 const rawKeys = $app.store().get("flame_cache_keys");
                                 if (rawKeys) keysList = JSON.parse(rawKeys);
                             } catch (e) {}
-                            if (!keysList.includes(cacheKey)) {
-                                keysList.push(cacheKey);
-                                $app.store().set("flame_cache_keys", JSON.stringify(keysList));
+
+                            let foundIndex = -1;
+                            for (let idx = 0; idx < keysList.length; idx++) {
+                                const item = keysList[idx];
+                                if (typeof item === 'string' && item === cacheKey) {
+                                    foundIndex = idx;
+                                    break;
+                                } else if (item && typeof item === 'object' && item.key === cacheKey) {
+                                    foundIndex = idx;
+                                    break;
+                                }
                             }
+
+                            const newEntry = { key: cacheKey, expiresAt: newCache.expiresAt };
+                            if (foundIndex > -1) {
+                                keysList[foundIndex] = newEntry;
+                            } else {
+                                keysList.push(newEntry);
+                            }
+                            $app.store().set("flame_cache_keys", JSON.stringify(keysList));
                         } catch (e) {
                             log("Failed to save Immich cache: " + e.message);
                         }
@@ -349,6 +372,31 @@ module.exports = function (context) {
                         try {
                             cached.expiresAt = now + 300000; // Extend expired cache by 5 minutes to avoid rapid retries
                             $app.store().set("flame_cache_" + cacheKey, JSON.stringify(cached));
+
+                            // Also update expiresAt in flame_cache_keys
+                            try {
+                                const rawKeys = $app.store().get("flame_cache_keys");
+                                if (rawKeys) {
+                                    let keysList = JSON.parse(rawKeys);
+                                    let found = false;
+                                    for (let idx = 0; idx < keysList.length; idx++) {
+                                        const item = keysList[idx];
+                                        if (item && typeof item === 'object' && item.key === cacheKey) {
+                                            item.expiresAt = cached.expiresAt;
+                                            found = true;
+                                            break;
+                                        } else if (typeof item === 'string' && item === cacheKey) {
+                                            keysList[idx] = { key: cacheKey, expiresAt: cached.expiresAt };
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found) {
+                                        keysList.push({ key: cacheKey, expiresAt: cached.expiresAt });
+                                    }
+                                    $app.store().set("flame_cache_keys", JSON.stringify(keysList));
+                                }
+                            } catch (e) {}
                         } catch (e) {
                             log("Failed to extend stale cache: " + e.message);
                         }
@@ -468,10 +516,26 @@ module.exports = function (context) {
                                 const rawKeys = $app.store().get("flame_cache_keys");
                                 if (rawKeys) keysList = JSON.parse(rawKeys);
                             } catch (e) {}
-                            if (!keysList.includes(cacheKey)) {
-                                keysList.push(cacheKey);
-                                $app.store().set("flame_cache_keys", JSON.stringify(keysList));
+
+                            let foundIndex = -1;
+                            for (let idx = 0; idx < keysList.length; idx++) {
+                                const item = keysList[idx];
+                                if (typeof item === 'string' && item === cacheKey) {
+                                    foundIndex = idx;
+                                    break;
+                                } else if (item && typeof item === 'object' && item.key === cacheKey) {
+                                    foundIndex = idx;
+                                    break;
+                                }
                             }
+
+                            const newEntry = { key: cacheKey, expiresAt: newCache.expiresAt };
+                            if (foundIndex > -1) {
+                                keysList[foundIndex] = newEntry;
+                            } else {
+                                keysList.push(newEntry);
+                            }
+                            $app.store().set("flame_cache_keys", JSON.stringify(keysList));
                         } catch (e) {
                             log("Failed to save cache: " + e.message);
                         }
@@ -483,6 +547,31 @@ module.exports = function (context) {
                         try {
                             cached.expiresAt = now + 300000;
                             $app.store().set("flame_cache_" + cacheKey, JSON.stringify(cached));
+
+                            // Also update expiresAt in flame_cache_keys
+                            try {
+                                const rawKeys = $app.store().get("flame_cache_keys");
+                                if (rawKeys) {
+                                    let keysList = JSON.parse(rawKeys);
+                                    let found = false;
+                                    for (let idx = 0; idx < keysList.length; idx++) {
+                                        const item = keysList[idx];
+                                        if (item && typeof item === 'object' && item.key === cacheKey) {
+                                            item.expiresAt = cached.expiresAt;
+                                            found = true;
+                                            break;
+                                        } else if (typeof item === 'string' && item === cacheKey) {
+                                            keysList[idx] = { key: cacheKey, expiresAt: cached.expiresAt };
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found) {
+                                        keysList.push({ key: cacheKey, expiresAt: cached.expiresAt });
+                                    }
+                                    $app.store().set("flame_cache_keys", JSON.stringify(keysList));
+                                }
+                            } catch (e) {}
                         } catch (e) {
                             log("Failed to extend stale cache: " + e.message);
                         }
@@ -492,7 +581,9 @@ module.exports = function (context) {
                 }
 
                 if (loadedFromThisSource && sourceImages.length > 0) {
-                    allFallbackAssets = allFallbackAssets.concat(sourceImages);
+                    for (let j = 0; j < sourceImages.length; j++) {
+                        allFallbackAssets.push(sourceImages[j]);
+                    }
                     successfulAlbums.push(sourceAlbumName);
                 }
             }
@@ -659,7 +750,9 @@ function collectAssetIds(value, bucket) {
     if (!value || typeof value !== 'object') return
 
     if (Array.isArray(value)) {
-        value.forEach((item) => collectAssetIds(item, bucket))
+        for (let i = 0; i < value.length; i++) {
+            collectAssetIds(value[i], bucket);
+        }
         return
     }
 
@@ -673,12 +766,15 @@ function collectAssetIds(value, bucket) {
                 id: value.id,
                 type: type === 'VIDEO' ? 'VIDEO' : 'IMAGE',
                 duration: value.duration ? Math.round(value.duration) : 0
-            })
+            });
+            // Stop recursion into this asset object's properties
+            return;
         }
     }
 
-    for (const key of Object.keys(value)) {
-        collectAssetIds(value[key], bucket)
+    const keys = Object.keys(value);
+    for (let i = 0; i < keys.length; i++) {
+        collectAssetIds(value[keys[i]], bucket);
     }
 }
 
@@ -990,13 +1086,13 @@ function fetchGooglePhotos(urlValue, log) {
         log("fetchGooglePhotos found " + ids.size + " unique photo base IDs.");
         
         const images = [];
-        ids.forEach(id => {
+        for (const id of ids) {
             images.push({
                 url: `https://lh3.googleusercontent.com/pw/${id}=w2048-h2048`,
                 type: "IMAGE",
                 duration: 0
             });
-        });
+        }
 
         return {
             images,

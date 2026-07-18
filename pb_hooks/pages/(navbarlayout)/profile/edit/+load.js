@@ -29,7 +29,7 @@ module.exports = function (context) {
             const bio = formData.bio
             const shortHand = formData.shortHand
 
-            const record = $app.findRecordById(TABLES.USERS, user.id)
+            const record = profile
 
             if (name) record.set("name", name)
             if (bio) record.set("bio", bio)
