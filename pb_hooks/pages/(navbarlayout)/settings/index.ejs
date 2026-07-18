@@ -161,6 +161,30 @@
                                         <template x-for="(item, index) in editingAlbumData.fallback_urls" :key="item.id">
                                             <div class="flex gap-2 items-center">
                                                 <span class="text-xs opacity-50 font-mono w-5 select-none" x-text="index + 1"></span>
+                                                <div class="flex items-center gap-0.5" x-show="editingAlbumData.fallback_urls.length > 1">
+                                                    <button
+                                                        type="button"
+                                                        @click="moveFallbackUp(editingAlbumData.fallback_urls, index)"
+                                                        class="btn btn-ghost btn-xs p-0 w-5 h-5 min-h-0 hover:text-[color:var(--color-accent)]"
+                                                        :class="index === 0 ? 'opacity-25 pointer-events-none' : ''"
+                                                        title="Move Up"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7" />
+                                                        </svg>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        @click="moveFallbackDown(editingAlbumData.fallback_urls, index)"
+                                                        class="btn btn-ghost btn-xs p-0 w-5 h-5 min-h-0 hover:text-[color:var(--color-accent)]"
+                                                        :class="index === editingAlbumData.fallback_urls.length - 1 ? 'opacity-25 pointer-events-none' : ''"
+                                                        title="Move Down"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
                                                 <input
                                                     type="text"
                                                     x-model="item.url"
@@ -239,6 +263,30 @@
                                 <template x-for="(item, index) in newAlbumData.fallback_urls" :key="item.id">
                                     <div class="flex gap-2 items-center">
                                         <span class="text-xs opacity-50 font-mono w-5 select-none" x-text="index + 1"></span>
+                                        <div class="flex items-center gap-0.5" x-show="newAlbumData.fallback_urls.length > 1">
+                                            <button
+                                                type="button"
+                                                @click="moveFallbackUp(newAlbumData.fallback_urls, index)"
+                                                class="btn btn-ghost btn-xs p-0 w-5 h-5 min-h-0 hover:text-[color:var(--color-accent)]"
+                                                :class="index === 0 ? 'opacity-25 pointer-events-none' : ''"
+                                                title="Move Up"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="moveFallbackDown(newAlbumData.fallback_urls, index)"
+                                                class="btn btn-ghost btn-xs p-0 w-5 h-5 min-h-0 hover:text-[color:var(--color-accent)]"
+                                                :class="index === newAlbumData.fallback_urls.length - 1 ? 'opacity-25 pointer-events-none' : ''"
+                                                title="Move Down"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </button>
+                                        </div>
                                         <input
                                             type="text"
                                             x-model="item.url"
@@ -812,6 +860,20 @@
             async moveAlbumDown(idx) {
                 if (idx >= this.albums.length - 1) return;
                 await this.swapAlbums(idx, idx + 1);
+            },
+
+            moveFallbackUp(list, index) {
+                if (index <= 0) return;
+                const item = list[index];
+                list.splice(index, 1);
+                list.splice(index - 1, 0, item);
+            },
+
+            moveFallbackDown(list, index) {
+                if (index >= list.length - 1) return;
+                const item = list[index];
+                list.splice(index, 1);
+                list.splice(index + 1, 0, item);
             },
 
             async swapAlbums(i, j) {
