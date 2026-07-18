@@ -106,6 +106,7 @@ module.exports = function (context) {
             color_background: "#282525",
             search_engine: "https://www.google.com/search?q=",
             fallback_url: "",
+            fallback_urls: [],
             randomize: false,
             prioritize_videos: false,
             latest_pin_count: 6,
@@ -132,6 +133,7 @@ module.exports = function (context) {
                         color_background: record.getString("color_background") || settings.color_background,
                         search_engine: record.getString("search_engine") || settings.search_engine,
                         fallback_url: record.getString("fallback_url") || settings.fallback_url,
+                        fallback_urls: [],
                         active_album: record.getString("active_album") || "",
                         randomize: record.getBool("randomize"),
                         prioritize_videos: record.getBool("prioritize_videos"),
@@ -168,6 +170,26 @@ module.exports = function (context) {
                     if (activeAlbum) {
                         settings.search_engine = activeAlbum.getString("immich_url") || "";
                         settings.fallback_url = activeAlbum.getString("amazon_url") || "";
+                        
+                        let fallbackUrls = [];
+                        try {
+                            const rawUrls = activeAlbum.get("fallback_urls");
+                            if (rawUrls) {
+                                fallbackUrls = Array.isArray(rawUrls) ? rawUrls : JSON.parse(JSON.stringify(rawUrls));
+                            }
+                        } catch (e) {
+                            try {
+                                const rawStr = activeAlbum.getString("fallback_urls");
+                                if (rawStr) {
+                                    fallbackUrls = JSON.parse(rawStr);
+                                }
+                            } catch (err) {}
+                        }
+                        if ((!fallbackUrls || fallbackUrls.length === 0) && settings.fallback_url) {
+                            fallbackUrls = [settings.fallback_url];
+                        }
+                        settings.fallback_urls = fallbackUrls;
+
                         settings.albumName = activeAlbum.getString("name") || "";
                         settings.active_album = activeAlbum.id;
                     }
@@ -348,14 +370,72 @@ module.exports = function (context) {
             log("search_engine settings value is empty.");
         }
 
-        // Amazon Photos Fallback if Immich failed or was empty
-        if (rawAssets.length === 0 && settings.fallback_url) {
-            log("Attempting to load from fallback Amazon Photos URL: " + settings.fallback_url);
-            const amazonInfo = parseAmazonShare(settings.fallback_url);
-            if (amazonInfo) {
-                log("Parsed Amazon Share Info successfully: " + JSON.stringify(amazonInfo));
+        // Fallbacks if Immich failed or was empty
+        if (rawAssets.length === 0 && settings.fallback_urls && settings.fallback_urls.length > 0) {
+            log("Attempting to load from fallback URLs (count: " + settings.fallback_urls.length + ")");
+            const now = Date.now();
+            const CACHE_TTL_MS = getCacheTtlMs(settings);
 
-                const cacheKey = amazonInfo.shareId;
+            let allFallbackAssets = [];
+            let successfulAlbums = [];
+
+            for (let i = 0; i < settings.fallback_urls.length; i++) {
+                const url = settings.fallback_urls[i];
+                if (!url) continue;
+
+                const isAmazon = url.includes("amazon.") || url.includes("/photos/share/");
+                const isGoogle = url.includes("photos.google.com") || url.includes("photos.app.goo.gl");
+
+                log("Processing fallback URL #" + (i + 1) + " (Amazon: " + isAmazon + ", Google: " + isGoogle + "): " + url);
+
+                let cacheKey = "";
+                let fetcher = null;
+
+                if (isAmazon) {
+                    const amazonInfo = parseAmazonShare(url);
+                    if (amazonInfo) {
+                        cacheKey = "amz_" + amazonInfo.shareId;
+                        fetcher = () => {
+                            const payload = fetchAmazonPhotos(amazonInfo.origin, amazonInfo.shareId, log);
+                            if (payload && payload.images && payload.images.length > 0) {
+                                return {
+                                    images: payload.images,
+                                    albumName: payload.albumName || "Amazon Photos"
+                                };
+                            }
+                            return null;
+                        };
+                    }
+                } else if (isGoogle) {
+                    const gMatch = url.match(/\/share\/([a-zA-Z0-9\-_]+)/);
+                    const shareId = gMatch ? gMatch[1] : null;
+                    if (shareId) {
+                        cacheKey = "gph_" + shareId;
+                    } else {
+                        let hash = 0;
+                        for (let k = 0; k < url.length; k++) {
+                            hash = (hash << 5) - hash + url.charCodeAt(k);
+                            hash |= 0;
+                        }
+                        cacheKey = "gph_" + Math.abs(hash);
+                    }
+                    fetcher = () => {
+                        const payload = fetchGooglePhotos(url, log);
+                        if (payload && payload.images && payload.images.length > 0) {
+                            return {
+                                images: payload.images,
+                                albumName: payload.albumName || "Google Photos"
+                            };
+                        }
+                        return null;
+                    };
+                }
+
+                if (!cacheKey || !fetcher) {
+                    log("Warning: Fallback URL #" + (i + 1) + " is not a valid Amazon or Google Photos link: " + url);
+                    continue;
+                }
+
                 let cached = null;
                 try {
                     const rawCache = $app.store().get("flame_cache_" + cacheKey);
@@ -363,29 +443,29 @@ module.exports = function (context) {
                         cached = JSON.parse(rawCache);
                     }
                 } catch (e) {
-                    log("Failed to parse cached Amazon Photos data: " + e.message);
+                    log("Failed to parse cached fallback data: " + e.message);
                 }
-                const now = Date.now();
-                const CACHE_TTL_MS = getCacheTtlMs(settings);
 
-                // Use fresh cache if available
+                let loadedFromThisSource = false;
+                let sourceImages = [];
+                let sourceAlbumName = isAmazon ? "Amazon Photos" : "Google Photos";
+
                 if (cached && cached.expiresAt > now && cached.images && cached.images.length > 0) {
-                    rawAssets = cached.images;
-                    albumName = cached.albumName || "Amazon Photos";
-                    statusText = `Loaded ${rawAssets.length} items from Amazon Photos (cached).`;
-                    log("Using fresh cached Amazon Photos data (" + rawAssets.length + " items, expires " + new Date(cached.expiresAt).toISOString() + ")");
+                    sourceImages = cached.images;
+                    sourceAlbumName = cached.albumName || sourceAlbumName;
+                    loadedFromThisSource = true;
+                    log("Using fresh cached data for " + sourceAlbumName + " (" + sourceImages.length + " items, expires " + new Date(cached.expiresAt).toISOString() + ")");
                 } else {
-                    // Attempt live fetch from Amazon Photos API
-                    const amazonPayload = fetchAmazonPhotos(amazonInfo.origin, amazonInfo.shareId, log);
-                    if (amazonPayload && amazonPayload.images && amazonPayload.images.length > 0) {
-                        rawAssets = amazonPayload.images;
-                        albumName = amazonPayload.albumName;
-                        statusText = `Loaded ${rawAssets.length} item${rawAssets.length === 1 ? '' : 's'} from Amazon Photos.`;
-                        log("Successfully loaded " + rawAssets.length + " items from Amazon Photos. Caching result.");
-                        // Store in cache
+                    log("Attempting live fetch from: " + url);
+                    const payload = fetcher();
+                    if (payload && payload.images && payload.images.length > 0) {
+                        sourceImages = payload.images;
+                        sourceAlbumName = payload.albumName || sourceAlbumName;
+                        loadedFromThisSource = true;
+                        log("Successfully loaded " + sourceImages.length + " items from " + sourceAlbumName + ". Caching result.");
                         const newCache = {
-                            images: rawAssets,
-                            albumName: albumName,
+                            images: sourceImages,
+                            albumName: sourceAlbumName,
                             expiresAt: now + CACHE_TTL_MS
                         };
                         try {
@@ -400,28 +480,36 @@ module.exports = function (context) {
                                 $app.store().set("flame_cache_keys", JSON.stringify(keysList));
                             }
                         } catch (e) {
-                            log("Failed to save Amazon Photos cache: " + e.message);
+                            log("Failed to save cache: " + e.message);
                         }
                     } else if (cached && cached.images && cached.images.length > 0) {
-                        // Live fetch failed - use stale cache as last resort
-                        rawAssets = cached.images;
-                        albumName = cached.albumName || "Amazon Photos";
-                        statusText = `Loaded ${rawAssets.length} items from Amazon Photos (stale cache - API temporarily unavailable).`;
-                        log("Live fetch failed, using stale cached Amazon Photos data (" + rawAssets.length + " items)");
+                        sourceImages = cached.images;
+                        sourceAlbumName = cached.albumName || sourceAlbumName;
+                        loadedFromThisSource = true;
+                        log("Live fetch failed, using stale cached data for " + sourceAlbumName + " (" + sourceImages.length + " items)");
                         try {
-                            cached.expiresAt = now + 300000; // Extend expired cache by 5 minutes to avoid rapid retries
+                            cached.expiresAt = now + 300000;
                             $app.store().set("flame_cache_" + cacheKey, JSON.stringify(cached));
                         } catch (e) {
-                            log("Failed to extend stale Amazon Photos cache: " + e.message);
+                            log("Failed to extend stale cache: " + e.message);
                         }
                     } else {
-                        statusText = 'Unable to load images from Amazon Photos fallback.';
-                        log("fetchAmazonPhotos returned empty or null and no cache available.");
+                        log("Failed to load images from: " + url + " and no cache was available.");
                     }
                 }
+
+                if (loadedFromThisSource && sourceImages.length > 0) {
+                    allFallbackAssets = allFallbackAssets.concat(sourceImages);
+                    successfulAlbums.push(sourceAlbumName);
+                }
+            }
+
+            if (allFallbackAssets.length > 0) {
+                rawAssets = allFallbackAssets;
+                albumName = successfulAlbums.join(" + ");
+                statusText = "Loaded " + rawAssets.length + " items from fallbacks: " + albumName + ".";
             } else {
-                statusText = 'Invalid Amazon Photos fallback URL configured.';
-                log("parseAmazonShare returned null for fallback_url: " + settings.fallback_url);
+                statusText = "Unable to load images from configured fallbacks.";
             }
         }
 
@@ -864,6 +952,65 @@ function fetchAmazonPhotos(origin, shareId, log) {
         };
     } catch (e) {
         log("fetchAmazonPhotos exception: " + e.message);
+    }
+    return null;
+}
+
+function fetchGooglePhotos(urlValue, log) {
+    try {
+        log("fetchGooglePhotos: fetching URL: " + urlValue);
+        const res = $http.send({
+            url: urlValue,
+            method: "GET",
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            timeout: 15
+        });
+        log("fetchGooglePhotos status: " + res.statusCode);
+        if (res.statusCode !== 200 || !res.raw) {
+            log("fetchGooglePhotos failed to fetch page content. Status: " + res.statusCode);
+            return null;
+        }
+
+        const html = res.raw;
+        let albumName = "Google Photos Album";
+        const titleMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) ||
+                           html.match(/<title>([^<]+)<\/title>/i);
+        if (titleMatch && titleMatch[1]) {
+            albumName = titleMatch[1]
+                .replace(/&#39;/g, "'")
+                .replace(/&quot;/g, '"')
+                .replace(/&amp;/g, '&')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>');
+        }
+
+        const pattern = /"https:\/\/lh3\.googleusercontent\.com\/pw\/([^"=]+)"/g;
+        const ids = new Set();
+        let match;
+        while ((match = pattern.exec(html)) !== null) {
+            const id = match[1].replace(/\\/g, "");
+            ids.add(id);
+        }
+
+        log("fetchGooglePhotos found " + ids.size + " unique photo base IDs.");
+        
+        const images = [];
+        ids.forEach(id => {
+            images.push({
+                url: `https://lh3.googleusercontent.com/pw/${id}=w2048-h2048`,
+                type: "IMAGE",
+                duration: 0
+            });
+        });
+
+        return {
+            images,
+            albumName
+        };
+    } catch (e) {
+        log("fetchGooglePhotos exception: " + e.message);
     }
     return null;
 }

@@ -91,13 +91,35 @@ module.exports = function (context) {
             // Load all albums
             const albumRecords = $app.findRecordsByFilter("flame_albums", userFilter, "order,created", 100, 0, filterParams);
             if (albumRecords && albumRecords.length > 0) {
-                albums = albumRecords.map(rec => ({
-                    id: rec.id,
-                    name: rec.getString("name"),
-                    immich_url: rec.getString("immich_url"),
-                    amazon_url: rec.getString("amazon_url"),
-                    order: rec.getInt("order")
-                }));
+                albums = albumRecords.map(rec => {
+                    let fallbackUrls = [];
+                    try {
+                        const rawUrls = rec.get("fallback_urls");
+                        if (rawUrls) {
+                            fallbackUrls = Array.isArray(rawUrls) ? rawUrls : JSON.parse(JSON.stringify(rawUrls));
+                        }
+                    } catch (e) {
+                        try {
+                            const rawStr = rec.getString("fallback_urls");
+                            if (rawStr) {
+                                fallbackUrls = JSON.parse(rawStr);
+                            }
+                        } catch (err) {}
+                    }
+                    const amzUrl = rec.getString("amazon_url");
+                    if ((!fallbackUrls || fallbackUrls.length === 0) && amzUrl) {
+                        fallbackUrls = [amzUrl];
+                    }
+
+                    return {
+                        id: rec.id,
+                        name: rec.getString("name"),
+                        immich_url: rec.getString("immich_url"),
+                        amazon_url: amzUrl,
+                        fallback_urls: fallbackUrls,
+                        order: rec.getInt("order")
+                    };
+                });
             }
         } catch (e) {
             console.error("Failed to load settings in settings loader:", e);

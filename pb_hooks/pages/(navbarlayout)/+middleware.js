@@ -33,6 +33,7 @@ module.exports = function (context) {
         color_background: "#282525",
         search_engine: "https://www.google.com/search?q=",
         fallback_url: "",
+        fallback_urls: [],
         randomize: false,
         prioritize_videos: false,
         latest_pin_count: 6,
@@ -91,6 +92,26 @@ module.exports = function (context) {
             if (activeAlbum) {
                 settings.search_engine = activeAlbum.getString("immich_url") || "";
                 settings.fallback_url = activeAlbum.getString("amazon_url") || "";
+                
+                let fallbackUrls = [];
+                try {
+                    const rawUrls = activeAlbum.get("fallback_urls");
+                    if (rawUrls) {
+                        fallbackUrls = Array.isArray(rawUrls) ? rawUrls : JSON.parse(JSON.stringify(rawUrls));
+                    }
+                } catch (e) {
+                    try {
+                        const rawStr = activeAlbum.getString("fallback_urls");
+                        if (rawStr) {
+                            fallbackUrls = JSON.parse(rawStr);
+                        }
+                    } catch (err) {}
+                }
+                if ((!fallbackUrls || fallbackUrls.length === 0) && settings.fallback_url) {
+                    fallbackUrls = [settings.fallback_url];
+                }
+                settings.fallback_urls = fallbackUrls;
+
                 settings.albumName = activeAlbum.getString("name") || "";
                 settings.active_album = activeAlbum.id;
             }
