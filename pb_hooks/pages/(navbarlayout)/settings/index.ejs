@@ -52,6 +52,31 @@
                         <div x-show="editingAlbumId !== album.id" class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div class="space-y-1.5 flex-1 min-w-0">
                                 <div class="flex items-center gap-2 flex-wrap">
+                                    <!-- Sort Buttons -->
+                                    <div class="flex items-center gap-0.5 mr-1" x-show="albums.length > 1 && editingAlbumId !== album.id">
+                                        <button
+                                            type="button"
+                                            @click="moveAlbumUp(idx)"
+                                            class="btn btn-ghost btn-xs p-0 w-5 h-5 min-h-0 hover:text-[color:var(--color-accent)]"
+                                            :class="idx === 0 ? 'opacity-25 pointer-events-none' : ''"
+                                            title="Move Up"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            @click="moveAlbumDown(idx)"
+                                            class="btn btn-ghost btn-xs p-0 w-5 h-5 min-h-0 hover:text-[color:var(--color-accent)]"
+                                            :class="idx === albums.length - 1 ? 'opacity-25 pointer-events-none' : ''"
+                                            title="Move Down"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                     <span class="text-sm font-bold text-white tracking-tight" x-text="album.name"></span>
                                     <template x-if="settings.active_album === album.id">
                                         <span class="badge badge-accent badge-sm font-bold px-2 text-[10px] text-[color:var(--color-background)]">Active</span>
@@ -688,6 +713,43 @@
                     this.showToast('Album deleted successfully!', 'success');
                 } catch (e) {
                     this.showToast('Failed to delete album: ' + e.message, 'error');
+                }
+            },
+
+            async moveAlbumUp(idx) {
+                if (idx <= 0) return;
+                await this.swapAlbums(idx, idx - 1);
+            },
+
+            async moveAlbumDown(idx) {
+                if (idx >= this.albums.length - 1) return;
+                await this.swapAlbums(idx, idx + 1);
+            },
+
+            async swapAlbums(i, j) {
+                const albumA = this.albums[i];
+                const albumB = this.albums[j];
+
+                // Swap in array
+                this.albums[i] = albumB;
+                this.albums[j] = albumA;
+
+                // Refresh array to trigger Alpine render
+                this.albums = [...this.albums];
+
+                try {
+                    // Update order in database
+                    await Promise.all([
+                        this.pb.collection('flame_albums').update(albumA.id, { order: j }),
+                        this.pb.collection('flame_albums').update(albumB.id, { order: i })
+                    ]);
+                    
+                    albumA.order = j;
+                    albumB.order = i;
+                    
+                    this.showToast('Album order updated.', 'success', 800);
+                } catch (e) {
+                    this.showToast('Failed to save order: ' + e.message, 'error');
                 }
             },
 
