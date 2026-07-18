@@ -94,18 +94,11 @@ module.exports = function (context) {
                 albums = albumRecords.map(rec => {
                     let fallbackUrls = [];
                     try {
-                        const rawUrls = rec.get("fallback_urls");
-                        if (rawUrls) {
-                            fallbackUrls = Array.isArray(rawUrls) ? rawUrls : JSON.parse(JSON.stringify(rawUrls));
+                        const rawStr = rec.getString("fallback_urls");
+                        if (rawStr) {
+                            fallbackUrls = JSON.parse(rawStr);
                         }
-                    } catch (e) {
-                        try {
-                            const rawStr = rec.getString("fallback_urls");
-                            if (rawStr) {
-                                fallbackUrls = JSON.parse(rawStr);
-                            }
-                        } catch (err) {}
-                    }
+                    } catch (e) {}
                     const amzUrl = rec.getString("amazon_url");
                     if ((!fallbackUrls || fallbackUrls.length === 0) && amzUrl) {
                         fallbackUrls = [amzUrl];

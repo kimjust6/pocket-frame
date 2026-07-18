@@ -158,12 +158,12 @@
                                 <div class="space-y-2">
                                     <label class="block text-[10px] font-semibold uppercase opacity-65">Fallback URLs (Amazon or Google Photos)</label>
                                     <div class="space-y-2">
-                                        <template x-for="(url, index) in editingAlbumData.fallback_urls" :key="index">
+                                        <template x-for="(item, index) in editingAlbumData.fallback_urls" :key="item.id">
                                             <div class="flex gap-2 items-center">
                                                 <span class="text-xs opacity-50 font-mono w-5 select-none" x-text="index + 1"></span>
                                                 <input
                                                     type="text"
-                                                    x-model="editingAlbumData.fallback_urls[index]"
+                                                    x-model="item.url"
                                                     class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-white"
                                                     placeholder="https://www.amazon.ca/photos/share/... or https://photos.google.com/share/..."
                                                 />
@@ -179,7 +179,7 @@
                                     </div>
                                     <button
                                         type="button"
-                                        @click="editingAlbumData.fallback_urls.push('')"
+                                        @click="editingAlbumData.fallback_urls.push({ id: Date.now() + '_' + Math.random(), url: '' })"
                                         class="btn btn-ghost btn-xs text-xs font-semibold hover:text-[color:var(--color-accent)] pl-0"
                                     >
                                         + Add Fallback URL
@@ -236,12 +236,12 @@
                         <div class="space-y-2">
                             <label class="block text-[10px] font-semibold uppercase opacity-65">Fallback URLs (Amazon or Google Photos)</label>
                             <div class="space-y-2">
-                                <template x-for="(url, index) in newAlbumData.fallback_urls" :key="index">
+                                <template x-for="(item, index) in newAlbumData.fallback_urls" :key="item.id">
                                     <div class="flex gap-2 items-center">
                                         <span class="text-xs opacity-50 font-mono w-5 select-none" x-text="index + 1"></span>
                                         <input
                                             type="text"
-                                            x-model="newAlbumData.fallback_urls[index]"
+                                            x-model="item.url"
                                             class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-white"
                                             placeholder="https://www.amazon.ca/photos/share/... or https://photos.google.com/share/..."
                                         />
@@ -257,7 +257,7 @@
                             </div>
                             <button
                                 type="button"
-                                @click="newAlbumData.fallback_urls.push('')"
+                                @click="newAlbumData.fallback_urls.push({ id: Date.now() + '_' + Math.random(), url: '' })"
                                 class="btn btn-ghost btn-xs text-xs font-semibold hover:text-[color:var(--color-accent)] pl-0"
                             >
                                 + Add Fallback URL
@@ -650,14 +650,18 @@
                     this.showToast('Please enter an album name.', 'warning');
                     return;
                 }
-                const normalizedImmich = this.normalizeHttpUrl(this.newAlbumData.immich_url);
-                if (!normalizedImmich) {
-                    this.showToast('Please enter a valid Immich share URL.', 'warning');
-                    return;
+                let normalizedImmich = '';
+                if (this.newAlbumData.immich_url && this.newAlbumData.immich_url.trim()) {
+                    normalizedImmich = this.normalizeHttpUrl(this.newAlbumData.immich_url);
+                    if (!normalizedImmich) {
+                        this.showToast('Please enter a valid Immich share URL.', 'warning');
+                        return;
+                    }
                 }
                 let normalizedFallbacks = [];
                 if (this.newAlbumData.fallback_urls && this.newAlbumData.fallback_urls.length > 0) {
-                    for (const rawUrl of this.newAlbumData.fallback_urls) {
+                    for (const item of this.newAlbumData.fallback_urls) {
+                        const rawUrl = item ? item.url : '';
                         if (rawUrl && rawUrl.trim()) {
                             const normalized = this.normalizeHttpUrl(rawUrl);
                             if (!normalized) {
@@ -667,6 +671,10 @@
                             normalizedFallbacks.push(normalized);
                         }
                     }
+                }
+                if (!normalizedImmich && normalizedFallbacks.length === 0) {
+                    this.showToast('Please enter an Immich share URL or at least one fallback URL.', 'warning');
+                    return;
                 }
                 const firstAmz = normalizedFallbacks.find(u => u.includes('amazon') || u.includes('/photos/share/')) || '';
 
@@ -703,7 +711,9 @@
 
             startEditAlbum(album) {
                 this.editingAlbumId = album.id;
-                this.editingAlbumData = { ...album, fallback_urls: [...(album.fallback_urls || [])] };
+                const urls = album.fallback_urls || [];
+                const objUrls = urls.map((u, i) => ({ id: Date.now() + '_' + i + '_' + Math.random(), url: u }));
+                this.editingAlbumData = { ...album, fallback_urls: objUrls };
                 this.isAddingAlbum = false;
             },
 
@@ -716,14 +726,18 @@
                     this.showToast('Please enter an album name.', 'warning');
                     return;
                 }
-                const normalizedImmich = this.normalizeHttpUrl(this.editingAlbumData.immich_url);
-                if (!normalizedImmich) {
-                    this.showToast('Please enter a valid Immich share URL.', 'warning');
-                    return;
+                let normalizedImmich = '';
+                if (this.editingAlbumData.immich_url && this.editingAlbumData.immich_url.trim()) {
+                    normalizedImmich = this.normalizeHttpUrl(this.editingAlbumData.immich_url);
+                    if (!normalizedImmich) {
+                        this.showToast('Please enter a valid Immich share URL.', 'warning');
+                        return;
+                    }
                 }
                 let normalizedFallbacks = [];
                 if (this.editingAlbumData.fallback_urls && this.editingAlbumData.fallback_urls.length > 0) {
-                    for (const rawUrl of this.editingAlbumData.fallback_urls) {
+                    for (const item of this.editingAlbumData.fallback_urls) {
+                        const rawUrl = item ? item.url : '';
                         if (rawUrl && rawUrl.trim()) {
                             const normalized = this.normalizeHttpUrl(rawUrl);
                             if (!normalized) {
@@ -733,6 +747,10 @@
                             normalizedFallbacks.push(normalized);
                         }
                     }
+                }
+                if (!normalizedImmich && normalizedFallbacks.length === 0) {
+                    this.showToast('Please enter an Immich share URL or at least one fallback URL.', 'warning');
+                    return;
                 }
                 const firstAmz = normalizedFallbacks.find(u => u.includes('amazon') || u.includes('/photos/share/')) || '';
 

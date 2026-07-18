@@ -95,18 +95,11 @@ module.exports = function (context) {
                 
                 let fallbackUrls = [];
                 try {
-                    const rawUrls = activeAlbum.get("fallback_urls");
-                    if (rawUrls) {
-                        fallbackUrls = Array.isArray(rawUrls) ? rawUrls : JSON.parse(JSON.stringify(rawUrls));
+                    const rawStr = activeAlbum.getString("fallback_urls");
+                    if (rawStr) {
+                        fallbackUrls = JSON.parse(rawStr);
                     }
-                } catch (e) {
-                    try {
-                        const rawStr = activeAlbum.getString("fallback_urls");
-                        if (rawStr) {
-                            fallbackUrls = JSON.parse(rawStr);
-                        }
-                    } catch (err) {}
-                }
+                } catch (e) {}
                 if ((!fallbackUrls || fallbackUrls.length === 0) && settings.fallback_url) {
                     fallbackUrls = [settings.fallback_url];
                 }
