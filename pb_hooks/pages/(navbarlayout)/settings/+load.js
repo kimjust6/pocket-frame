@@ -35,6 +35,7 @@ module.exports = function (context) {
             cache_ttl: 604800
         };
 
+        let albums = [];
         try {
             const records = $app.findRecordsByFilter("flame_settings", userFilter, "", 1, 0, filterParams);
             let record = records && records.length ? records[0] : null;
@@ -48,6 +49,23 @@ module.exports = function (context) {
                 record.set("search_engine", settings.search_engine);
                 record.set("cache_ttl", settings.cache_ttl);
                 $app.save(record);
+
+                // Create a default album for new settings record
+                try {
+                    const albumCollection = $app.findCollectionByNameOrId("flame_albums");
+                    const defaultAlbum = new Record(albumCollection);
+                    defaultAlbum.set("user", user.id);
+                    defaultAlbum.set("name", "Default Album");
+                    defaultAlbum.set("immich_url", settings.search_engine);
+                    defaultAlbum.set("amazon_url", "");
+                    defaultAlbum.set("order", 0);
+                    $app.save(defaultAlbum);
+
+                    record.set("active_album", defaultAlbum.id);
+                    $app.save(record);
+                } catch (albumErr) {
+                    console.error("Failed to create default album for new user settings:", albumErr);
+                }
             }
             if (record) {
                 settings = {
@@ -57,6 +75,8 @@ module.exports = function (context) {
                     color_accent: record.getString("color_accent") || settings.color_accent,
                     color_background: record.getString("color_background") || settings.color_background,
                     search_engine: record.getString("search_engine") || settings.search_engine,
+                    fallback_url: record.getString("fallback_url") || settings.fallback_url,
+                    active_album: record.getString("active_album") || "",
                     randomize: record.getBool("randomize"),
                     prioritize_videos: record.getBool("prioritize_videos"),
                     latest_pin_count: record.getInt("latest_pin_count") || 6,
@@ -67,13 +87,26 @@ module.exports = function (context) {
                     cache_ttl: record.getInt("cache_ttl") || 604800
                 };
             }
+
+            // Load all albums
+            const albumRecords = $app.findRecordsByFilter("flame_albums", userFilter, "order,created", 100, 0, filterParams);
+            if (albumRecords && albumRecords.length > 0) {
+                albums = albumRecords.map(rec => ({
+                    id: rec.id,
+                    name: rec.getString("name"),
+                    immich_url: rec.getString("immich_url"),
+                    amazon_url: rec.getString("amazon_url"),
+                    order: rec.getInt("order")
+                }));
+            }
         } catch (e) {
             console.error("Failed to load settings in settings loader:", e);
         }
 
         return {
             isHome: false,
-            settings
+            settings,
+            albums
         };
     } catch (e) {
         console.error("Failed in settings loader:", e);
