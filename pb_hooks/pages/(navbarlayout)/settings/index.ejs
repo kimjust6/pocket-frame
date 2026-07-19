@@ -1,4 +1,6 @@
-<% if (locals.data && (locals.data.success || locals.data.error)) { -%><%- JSON.stringify(locals.data) -%><% return; } -%>
+<% if (locals.data && (locals.data.success || locals.data.error)) { -%>
+<%- JSON.stringify(locals.data) -%>
+<% } else { -%>
 <div
     x-data="settingsManager()"
     class="mx-auto min-h-screen max-w-3xl px-4 py-8"
@@ -990,3 +992,4 @@
         });
     }
 </script>
+<% } -%>

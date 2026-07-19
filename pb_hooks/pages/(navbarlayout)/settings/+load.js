@@ -19,7 +19,7 @@ module.exports = function (context) {
         }
 
         if (context.request.method === 'post' || context.request.method === 'POST') {
-            const common = require('../../../lib/common.js')
+            const common = require(__hooks + '/lib/common.js')
             try {
                 const formData = context.request.formData()
                 const action = formData.action
