@@ -5,7 +5,7 @@
  * @returns {{ profile: import('../../../../lib/pocketbase-types').UsersResponse }}
  */
 module.exports = function (context) {
-    const common = require('../../../../lib/common.js')
+    const common = require(__hooks + '/lib/common.js')
     const { TABLES } = common
     const user = context.request.auth
     if (!user) {
@@ -29,7 +29,7 @@ module.exports = function (context) {
             const bio = formData.bio
             const shortHand = formData.shortHand
 
-            const record = $app.findRecordById(TABLES.USERS, user.id)
+            const record = profile
 
             if (name) record.set("name", name)
             if (bio) record.set("bio", bio)

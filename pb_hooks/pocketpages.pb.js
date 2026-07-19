@@ -8752,12 +8752,47 @@ var v23MiddlewareWrapper = (e) => {
         },
         cookie: (name, value, options2) => {
             let outValue = "";
-            if (typeof value === "object") {
+            let isDelete = value === "" || value === null || value === undefined;
+            if (isDelete) {
+                outValue = "";
+            } else if (typeof value === "object") {
                 outValue = encodeURIComponent(JSON.stringify(value));
             } else {
-                outValue = encodeURIComponent(`${value ?? ""}`);
+                outValue = encodeURIComponent(`${value}`);
             }
-            response.header("Set-Cookie", `${name}=${outValue}; Path=/`);
+            let cookieParts = [`${name}=${outValue}`];
+            let path = "/";
+            if (options2 && options2.path !== undefined) {
+                path = options2.path;
+            }
+            if (path) {
+                cookieParts.push(`Path=${path}`);
+            }
+            if (isDelete) {
+                cookieParts.push("Max-Age=0");
+                cookieParts.push("Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+            } else if (options2) {
+                if (options2.maxAge !== undefined) {
+                    cookieParts.push(`Max-Age=${options2.maxAge}`);
+                }
+                if (options2.expires) {
+                    const exp = options2.expires instanceof Date ? options2.expires.toUTCString() : options2.expires;
+                    cookieParts.push(`Expires=${exp}`);
+                }
+                if (options2.domain) {
+                    cookieParts.push(`Domain=${options2.domain}`);
+                }
+                if (options2.secure) {
+                    cookieParts.push("Secure");
+                }
+                if (options2.httpOnly) {
+                    cookieParts.push("HttpOnly");
+                }
+                if (options2.sameSite) {
+                    cookieParts.push(`SameSite=${options2.sameSite}`);
+                }
+            }
+            response.header("Set-Cookie", cookieParts.join("; "));
         }
     };
     require(`${__hooks}/pocketpages.pb`).MiddlewareHandler(

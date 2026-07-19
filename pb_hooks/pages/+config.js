@@ -220,8 +220,7 @@ const authPlugin = (config) => {
                 if (!record) throw new Error("No auth record found");
                 dbg(`signing in with token and saving to pb_auth cookie: ${record.id} ${token}`);
                 api.response.cookie("pb_auth", {
-                    token,
-                    record: toPlainObject(record)
+                    token
                 });
             };
         }

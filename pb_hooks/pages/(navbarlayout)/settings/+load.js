@@ -17,6 +17,137 @@ module.exports = function (context) {
             context.response.redirect('/login')
             return
         }
+
+        if (context.request.method === 'post' || context.request.method === 'POST') {
+            const common = require(__hooks + '/lib/common.js')
+            try {
+                const formData = context.request.formData()
+                const action = formData.action
+
+                if (action === 'save_settings') {
+                    const settingsId = formData.settings_id
+                    const record = $app.findRecordById("flame_settings", settingsId)
+                    
+                    record.set("color_primary", formData.color_primary)
+                    record.set("color_accent", formData.color_accent)
+                    record.set("color_background", formData.color_background)
+                    record.set("randomize", formData.randomize === 'true' || formData.randomize === true)
+                    record.set("prioritize_videos", formData.prioritize_videos === 'true' || formData.prioritize_videos === true)
+                    record.set("autoplay_fullscreen", formData.autoplay_fullscreen === 'true' || formData.autoplay_fullscreen === true)
+                    record.set("latest_pin_count", parseInt(formData.latest_pin_count, 10) || 6)
+                    record.set("slide_interval", parseInt(formData.slide_interval, 10) || 7)
+                    record.set("video_repeat_threshold", parseInt(formData.video_repeat_threshold, 10) || 5)
+                    record.set("video_repeat_count", parseInt(formData.video_repeat_count, 10) || 3)
+                    record.set("cache_ttl", parseInt(formData.cache_ttl, 10) || 604800)
+                    record.set("active_album", formData.active_album || null)
+                    
+                    $app.save(record)
+                    return { success: true }
+                }
+
+                if (action === 'create_album') {
+                    const collection = $app.findCollectionByNameOrId("flame_albums")
+                    const record = new Record(collection)
+                    record.set("user", user.id)
+                    record.set("name", formData.name)
+                    record.set("immich_url", formData.immich_url || "")
+                    record.set("amazon_url", formData.amazon_url || "")
+                    
+                    let fallbackUrls = []
+                    if (formData.fallback_urls) {
+                        try {
+                            fallbackUrls = JSON.parse(formData.fallback_urls)
+                        } catch (e) {
+                            if (typeof formData.fallback_urls === 'string') {
+                                fallbackUrls = [formData.fallback_urls]
+                            }
+                        }
+                    }
+                    record.set("fallback_urls", fallbackUrls)
+                    record.set("order", parseInt(formData.order, 10) || 0)
+                    
+                    $app.save(record)
+                    return { success: true, id: record.id }
+                }
+
+                if (action === 'update_album') {
+                    const albumId = formData.album_id
+                    const record = $app.findRecordById("flame_albums", albumId)
+                    record.set("name", formData.name)
+                    record.set("immich_url", formData.immich_url || "")
+                    record.set("amazon_url", formData.amazon_url || "")
+                    
+                    let fallbackUrls = []
+                    if (formData.fallback_urls) {
+                        try {
+                            fallbackUrls = JSON.parse(formData.fallback_urls)
+                        } catch (e) {
+                            if (typeof formData.fallback_urls === 'string') {
+                                fallbackUrls = [formData.fallback_urls]
+                            }
+                        }
+                    }
+                    record.set("fallback_urls", fallbackUrls)
+                    
+                    $app.save(record)
+                    return { success: true }
+                }
+
+                if (action === 'delete_album') {
+                    const albumId = formData.album_id
+                    
+                    $app.delete($app.findRecordById("flame_albums", albumId))
+                    
+                    const userFilter = "user = {:user}"
+                    const records = $app.findRecordsByFilter("flame_settings", userFilter, "", 1, 0, { user: user.id })
+                    const settingsRecord = records && records.length ? records[0] : null
+                    if (settingsRecord && settingsRecord.getString("active_album") === albumId) {
+                        const albums = $app.findRecordsByFilter("flame_albums", userFilter, "order,created", 1, 0, { user: user.id })
+                        if (albums && albums.length > 0) {
+                            settingsRecord.set("active_album", albums[0].id)
+                        } else {
+                            settingsRecord.set("active_album", null)
+                        }
+                        $app.save(settingsRecord)
+                    }
+                    
+                    return { success: true }
+                }
+
+                if (action === 'swap_albums') {
+                    const albumA = $app.findRecordById("flame_albums", formData.albumA_id)
+                    const albumB = $app.findRecordById("flame_albums", formData.albumB_id)
+                    
+                    const orderA = parseInt(formData.albumA_order, 10)
+                    const orderB = parseInt(formData.albumB_order, 10)
+                    
+                    albumA.set("order", orderA)
+                    albumB.set("order", orderB)
+                    
+                    $app.save(albumA)
+                    $app.save(albumB)
+                    
+                    return { success: true }
+                }
+
+                if (action === 'set_active_album') {
+                    const userFilter = "user = {:user}"
+                    const records = $app.findRecordsByFilter("flame_settings", userFilter, "", 1, 0, { user: user.id })
+                    const settingsRecord = records && records.length ? records[0] : null
+                    if (settingsRecord) {
+                        settingsRecord.set("active_album", formData.album_id || null)
+                        $app.save(settingsRecord)
+                    }
+                    return { success: true }
+                }
+
+                return { error: "Unknown action" }
+            } catch (e) {
+                console.error("Settings POST error:", e)
+                return { error: e.message }
+            }
+        }
+
         const userFilter = "user = {:user}"
         const filterParams = { user: user.id }
         let settings = {
@@ -35,6 +166,7 @@ module.exports = function (context) {
             cache_ttl: 604800
         };
 
+        let albums = [];
         try {
             const records = $app.findRecordsByFilter("flame_settings", userFilter, "", 1, 0, filterParams);
             let record = records && records.length ? records[0] : null;
@@ -48,6 +180,23 @@ module.exports = function (context) {
                 record.set("search_engine", settings.search_engine);
                 record.set("cache_ttl", settings.cache_ttl);
                 $app.save(record);
+
+                // Create a default album for new settings record
+                try {
+                    const albumCollection = $app.findCollectionByNameOrId("flame_albums");
+                    const defaultAlbum = new Record(albumCollection);
+                    defaultAlbum.set("user", user.id);
+                    defaultAlbum.set("name", "Default Album");
+                    defaultAlbum.set("immich_url", settings.search_engine);
+                    defaultAlbum.set("amazon_url", "");
+                    defaultAlbum.set("order", 0);
+                    $app.save(defaultAlbum);
+
+                    record.set("active_album", defaultAlbum.id);
+                    $app.save(record);
+                } catch (albumErr) {
+                    console.error("Failed to create default album for new user settings:", albumErr);
+                }
             }
             if (record) {
                 settings = {
@@ -57,6 +206,8 @@ module.exports = function (context) {
                     color_accent: record.getString("color_accent") || settings.color_accent,
                     color_background: record.getString("color_background") || settings.color_background,
                     search_engine: record.getString("search_engine") || settings.search_engine,
+                    fallback_url: record.getString("fallback_url") || settings.fallback_url,
+                    active_album: record.getString("active_album") || "",
                     randomize: record.getBool("randomize"),
                     prioritize_videos: record.getBool("prioritize_videos"),
                     latest_pin_count: record.getInt("latest_pin_count") || 6,
@@ -67,13 +218,41 @@ module.exports = function (context) {
                     cache_ttl: record.getInt("cache_ttl") || 604800
                 };
             }
+
+            // Load all albums
+            const albumRecords = $app.findRecordsByFilter("flame_albums", userFilter, "order,created", 100, 0, filterParams);
+            if (albumRecords && albumRecords.length > 0) {
+                albums = albumRecords.map(rec => {
+                    let fallbackUrls = [];
+                    try {
+                        const rawStr = rec.getString("fallback_urls");
+                        if (rawStr) {
+                            fallbackUrls = JSON.parse(rawStr);
+                        }
+                    } catch (e) {}
+                    const amzUrl = rec.getString("amazon_url");
+                    if ((!fallbackUrls || fallbackUrls.length === 0) && amzUrl) {
+                        fallbackUrls = [amzUrl];
+                    }
+
+                    return {
+                        id: rec.id,
+                        name: rec.getString("name"),
+                        immich_url: rec.getString("immich_url"),
+                        amazon_url: amzUrl,
+                        fallback_urls: fallbackUrls,
+                        order: rec.getInt("order")
+                    };
+                });
+            }
         } catch (e) {
             console.error("Failed to load settings in settings loader:", e);
         }
 
         return {
             isHome: false,
-            settings
+            settings,
+            albums
         };
     } catch (e) {
         console.error("Failed in settings loader:", e);

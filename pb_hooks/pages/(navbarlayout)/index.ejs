@@ -21,14 +21,6 @@
             <div class="w-screen h-screen flex-shrink-0 relative overflow-hidden bg-black flex items-center justify-center">
                 <template x-if="isNear(idx) || loadedIndices.includes(idx)">
                     <div class="absolute inset-0 w-full h-full flex items-center justify-center">
-                        <!-- Blurred background -->
-                        <img
-                            :src="loadedIndices.includes(idx) ? img.blurUrl : ''"
-                            alt=""
-                            class="absolute inset-0 h-full w-full object-cover blur-3xl opacity-40 scale-110 pointer-events-none"
-                            loading="lazy"
-                            referrerpolicy="no-referrer"
-                        />
                         <!-- Foreground Image -->
                         <img
                             x-show="img.type === 'IMAGE'"
@@ -47,7 +39,10 @@
                             preload="auto"
                             muted
                             playsinline
-                            controls
+                            :controls="showControls && userInteracted"
+                            @mousemove="keepControlsAlive()"
+                            @click="keepControlsAlive()"
+                            @touchstart="keepControlsAlive()"
                             @canplay="if (idx === currentIndex) { const v = $event.target; v.muted = true; setTimeout(() => { v.play().then(() => { v.muted = false }).catch(() => { v.muted = false }) }, 150) }"
                             @ended="onVideoEnded($event)"
                             class="relative h-full w-full object-contain z-10 pointer-events-auto"
@@ -218,8 +213,10 @@
             statusText: slideData.statusText || 'Loading slideshow...',
             emptyMessage: 'No images loaded. Add an Immich share URL in Settings to start the slideshow.',
             slideTimerId: null,
+            videoWatchdogIntervalId: null,
             slideIntervalMs: slideData.slideIntervalMs || 7000,
             showControls: true,
+            userInteracted: false,
             controlsTimeout: null,
             videoRepeatThreshold: slideData.videoRepeatThreshold || 5,
             videoRepeatCount: slideData.videoRepeatCount || 3,
@@ -247,45 +244,11 @@
             },
 
             init() {
-                this.keepControlsAlive()
+                this.keepControlsAlive(false)
                 document.addEventListener('fullscreenchange', () => {
                     this.isFullscreen = !!document.fullscreenElement
                 })
 
-                // Reconstruct full URLs if using simplified Immich format
-                if (this.shareInfo && this.images.length > 0) {
-                    const origin = this.shareInfo.origin;
-                    const shareKey = encodeURIComponent(this.shareInfo.shareKey);
-                    const atQuery = this.shareInfo.atToken ? `&at=${encodeURIComponent(this.shareInfo.atToken)}` : '';
-                    this.images = this.images.map(img => {
-                        if (img.id) {
-                            const blurUrl = `${origin}/api/assets/${img.id}/thumbnail?key=${shareKey}&size=thumbnail${atQuery}`;
-                            const thumbnailUrl = `${origin}/api/assets/${img.id}/thumbnail?key=${shareKey}&size=preview${atQuery}`;
-                            const url = img.type === 'VIDEO'
-                                ? `${origin}/api/assets/${img.id}/video/playback?key=${shareKey}${atQuery}`
-                                : thumbnailUrl;
-                            return {
-                                url,
-                                thumbnailUrl,
-                                blurUrl,
-                                type: img.type,
-                                duration: img.duration || 0
-                            };
-                        }
-                        return img;
-                    });
-                } else if (this.images.length > 0) {
-                    // For Amazon / fallback format, set thumbnailUrl to url if missing
-                    this.images = this.images.map(img => {
-                        if (img.url && !img.thumbnailUrl) {
-                            img.thumbnailUrl = img.url;
-                        }
-                        if (img.url && !img.blurUrl) {
-                            img.blurUrl = img.url;
-                        }
-                        return img;
-                    });
-                }
 
                 if (this.images.length > 0) {
                     if (document.readyState === 'complete') {
@@ -301,8 +264,11 @@
                 }
             },
 
-            keepControlsAlive() {
+            keepControlsAlive(isUserInteraction = true) {
                 this.showControls = true
+                if (isUserInteraction) {
+                    this.userInteracted = true
+                }
                 if (this.controlsTimeout) {
                     clearTimeout(this.controlsTimeout)
                 }
@@ -401,6 +367,10 @@
                     clearInterval(this.slideTimerId)
                     this.slideTimerId = null
                 }
+                if (this.videoWatchdogIntervalId) {
+                    clearInterval(this.videoWatchdogIntervalId)
+                    this.videoWatchdogIntervalId = null
+                }
 
                 // Control video playback programmatically based on active index
                 const tryPlayVideo = () => {
@@ -433,8 +403,40 @@
 
                 const current = this.images[this.currentIndex]
                 if (current.type === 'VIDEO') {
-                    // Let the video end event transition to the next image automatically.
-                    // We don't start the standard image slide timer.
+                    // Start a watchdog to monitor video playback.
+                    // If video is stuck, tries to hit play. If still stuck, moves on after 15 seconds.
+                    let lastPlayheadPosition = -1
+                    let lastProgressTime = Date.now()
+                    const stuckTimeoutMs = 15000
+
+                    this.videoWatchdogIntervalId = setInterval(() => {
+                        const video = document.getElementById(`video-${this.currentIndex}`)
+                        if (!video) return
+
+                        // If user is interacting, suspend the watchdog
+                        if (this.showControls) {
+                            lastProgressTime = Date.now()
+                            lastPlayheadPosition = video.currentTime
+                            return
+                        }
+
+                        if (!video.paused && video.currentTime !== lastPlayheadPosition) {
+                            lastPlayheadPosition = video.currentTime
+                            lastProgressTime = Date.now()
+                        } else {
+                            if (video.paused) {
+                                video.play().catch(() => {})
+                            }
+
+                            const stuckDuration = Date.now() - lastProgressTime
+                            if (stuckDuration > stuckTimeoutMs) {
+                                console.warn(`Video stuck for ${stuckDuration}ms, moving to next slide.`)
+                                clearInterval(this.videoWatchdogIntervalId)
+                                this.videoWatchdogIntervalId = null
+                                this.nextImage()
+                            }
+                        }
+                    }, 5000)
                 } else {
                     // Start timer for standard image slides
                     const startImageTimer = () => {

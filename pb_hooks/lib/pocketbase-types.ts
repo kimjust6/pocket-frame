@@ -11,6 +11,7 @@ export const Collections = {
 	Mfas: "_mfas",
 	Otps: "_otps",
 	Superusers: "_superusers",
+	FlameAlbums: "flame_albums",
 	FlameSettings: "flame_settings",
 	Users: "users",
 } as const
@@ -94,8 +95,19 @@ export type SuperusersRecord = {
 	verified?: boolean
 }
 
+export type FlameAlbumsRecord = {
+	amazon_url?: string
+	created: IsoAutoDateString
+	id: string
+	immich_url?: string
+	name: string
+	order?: number
+	updated: IsoAutoDateString
+	user: RecordIdString
+}
 
 export type FlameSettingsRecord = {
+	active_album?: RecordIdString
 	autoplay_fullscreen?: boolean
 	cache_ttl?: number
 	color_accent?: string
@@ -137,6 +149,7 @@ export type ExternalauthsResponse<Texpand = unknown> = Required<ExternalauthsRec
 export type MfasResponse<Texpand = unknown> = Required<MfasRecord> & BaseSystemFields<Texpand>
 export type OtpsResponse<Texpand = unknown> = Required<OtpsRecord> & BaseSystemFields<Texpand>
 export type SuperusersResponse<Texpand = unknown> = Required<SuperusersRecord> & AuthSystemFields<Texpand>
+export type FlameAlbumsResponse<Texpand = unknown> = Required<FlameAlbumsRecord> & BaseSystemFields<Texpand>
 export type FlameSettingsResponse<Texpand = unknown> = Required<FlameSettingsRecord> & BaseSystemFields<Texpand>
 export type UsersResponse<Texpand = unknown> = Required<UsersRecord> & AuthSystemFields<Texpand>
 
@@ -148,6 +161,7 @@ export type CollectionRecords = {
 	_mfas: MfasRecord
 	_otps: OtpsRecord
 	_superusers: SuperusersRecord
+	flame_albums: FlameAlbumsRecord
 	flame_settings: FlameSettingsRecord
 	users: UsersRecord
 }
@@ -158,6 +172,7 @@ export type CollectionResponses = {
 	_mfas: MfasResponse
 	_otps: OtpsResponse
 	_superusers: SuperusersResponse
+	flame_albums: FlameAlbumsResponse
 	flame_settings: FlameSettingsResponse
 	users: UsersResponse
 }

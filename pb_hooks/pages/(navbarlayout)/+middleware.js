@@ -33,6 +33,7 @@ module.exports = function (context) {
         color_background: "#282525",
         search_engine: "https://www.google.com/search?q=",
         fallback_url: "",
+        fallback_urls: [],
         randomize: false,
         prioritize_videos: false,
         latest_pin_count: 6,
@@ -55,6 +56,7 @@ module.exports = function (context) {
                 color_background: record.getString("color_background") || settings.color_background,
                 search_engine: record.getString("search_engine") || settings.search_engine,
                 fallback_url: record.getString("fallback_url") || settings.fallback_url,
+                active_album: record.getString("active_album") || "",
                 randomize: record.getBool("randomize"),
                 prioritize_videos: record.getBool("prioritize_videos"),
                 latest_pin_count: record.getInt("latest_pin_count") || 6,
@@ -64,6 +66,48 @@ module.exports = function (context) {
                 autoplay_fullscreen: record.getBool("autoplay_fullscreen"),
                 cache_ttl: record.getInt("cache_ttl") || 604800
             };
+
+            let activeAlbum = null;
+            if (settings.active_album) {
+                try {
+                    activeAlbum = $app.findRecordById("flame_albums", settings.active_album);
+                } catch (albumErr) {
+                    // album not found
+                }
+            }
+
+            if (!activeAlbum) {
+                try {
+                    const albums = $app.findRecordsByFilter("flame_albums", "user = {:user}", "order,created", 1, 0, { user: user.id });
+                    if (albums && albums.length > 0) {
+                        activeAlbum = albums[0];
+                        record.set("active_album", activeAlbum.id);
+                        $app.save(record);
+                    }
+                } catch (e) {
+                    // no albums found
+                }
+            }
+
+            if (activeAlbum) {
+                settings.search_engine = activeAlbum.getString("immich_url") || "";
+                settings.fallback_url = activeAlbum.getString("amazon_url") || "";
+                
+                let fallbackUrls = [];
+                try {
+                    const rawStr = activeAlbum.getString("fallback_urls");
+                    if (rawStr) {
+                        fallbackUrls = JSON.parse(rawStr);
+                    }
+                } catch (e) {}
+                if ((!fallbackUrls || fallbackUrls.length === 0) && settings.fallback_url) {
+                    fallbackUrls = [settings.fallback_url];
+                }
+                settings.fallback_urls = fallbackUrls;
+
+                settings.albumName = activeAlbum.getString("name") || "";
+                settings.active_album = activeAlbum.id;
+            }
         }
     } catch (e) {
         // collection doesn't exist yet or is empty

@@ -1,3 +1,6 @@
+<% if (/^\s*(<!doctype html|<html|\{|\[)/i.test(slot)) { -%>
+<%- slot -%>
+<% } else { -%>
 <!doctype html>
 <html lang="en" data-theme="yellowdark" x-data="shell()">
     <head>
@@ -34,3 +37,4 @@
         <%- include('link-fixer.ejs') %>
     </body>
 </html>
+<% } -%>
