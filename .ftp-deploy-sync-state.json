@@ -1,7 +1,7 @@
 {
     "description": "DO NOT DELETE THIS FILE. This file is used to keep track of which files have been synced in the most recent deployment. If you delete this file a resync will need to be done (which can take a while) - read more: https://github.com/SamKirkland/FTP-Deploy-Action",
     "version": "1.0.0",
-    "generatedTime": 1784410289245,
+    "generatedTime": 1784428982996,
     "data": [
         {
             "type": "file",
@@ -648,8 +648,8 @@
         {
             "type": "file",
             "name": "pb_hooks/pages/app.css",
-            "size": 150923,
-            "hash": "f722226a1fada8d3a97da95d928c94e210307dee2c31d6ff1fbec89d1fb63166"
+            "size": 148740,
+            "hash": "21f83460f6e31b7293407c0ee260acddd6bcf098358ed86b38fcccc09ba8e8c3"
         },
         {
             "type": "folder",
@@ -824,8 +824,8 @@
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/index.ejs",
-            "size": 27334,
-            "hash": "c7b4c5f9db450c5729cbd5024b36bdb2faa2754acde9d7767fced6a43ca1858f"
+            "size": 25389,
+            "hash": "4d4e075a4edfe3bf9ebcd70801c8441d8acda49998f11aed6c6350479b9ab855"
         },
         {
             "type": "file",
@@ -836,8 +836,8 @@
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/+load.js",
-            "size": 50544,
-            "hash": "d067461efe665ab13318584194f07988211ba97c095d817b6781eac10865a9bf"
+            "size": 52303,
+            "hash": "a2bb1bdbe09acce562c4d869db8c0afda438b352bd54efeb27e9390c473783aa"
         },
         {
             "type": "file",
@@ -848,14 +848,14 @@
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/settings/index.ejs",
-            "size": 51378,
-            "hash": "8184e30bf7cf8b48acfe11aac19cd09276bd757d20745309cc81384cc55d0bb4"
+            "size": 52673,
+            "hash": "16b514ef5efd6a01f7c2c30044aee24c0105147412fdd950ed489715200127d0"
         },
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/settings/+load.js",
-            "size": 5854,
-            "hash": "e4602ad0650eeb49401d8880891c8c74d1ea3b819a60e2d41aefb1f6b6e9469a"
+            "size": 12627,
+            "hash": "c3e60185876f2a648e190c062a404ea8debb7af45cdff6264bdf415491413527"
         },
         {
             "type": "file",

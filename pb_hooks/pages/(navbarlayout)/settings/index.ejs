@@ -1,3 +1,4 @@
+<% if (locals.data && (locals.data.success || locals.data.error)) { -%><%- JSON.stringify(locals.data) -%><% return; } -%>
 <div
     x-data="settingsManager()"
     class="mx-auto min-h-screen max-w-3xl px-4 py-8"
@@ -77,7 +78,7 @@
                                             </svg>
                                         </button>
                                     </div>
-                                    <span class="text-sm font-bold text-white tracking-tight" x-text="album.name"></span>
+                                    <span class="text-sm font-bold text-base-content tracking-tight" x-text="album.name"></span>
                                     <template x-if="settings.active_album === album.id">
                                         <span class="badge badge-accent badge-sm font-bold px-2 text-[10px] text-[color:var(--color-background)]">Active</span>
                                     </template>
@@ -142,7 +143,7 @@
                                     <input
                                         type="text"
                                         x-model="editingAlbumData.name"
-                                        class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-white"
+                                        class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-base-content"
                                         placeholder="e.g. Living Room Frame"
                                     />
                                 </div>
@@ -151,7 +152,7 @@
                                     <input
                                         type="text"
                                         x-model="editingAlbumData.immich_url"
-                                        class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-white"
+                                        class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-base-content"
                                         placeholder="https://photos.example.com/share/..."
                                     />
                                 </div>
@@ -188,7 +189,7 @@
                                                 <input
                                                     type="text"
                                                     x-model="item.url"
-                                                    class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-white"
+                                                    class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-base-content"
                                                     placeholder="https://www.amazon.ca/photos/share/... or https://photos.google.com/share/..."
                                                 />
                                                 <button
@@ -244,7 +245,7 @@
                             <input
                                 type="text"
                                 x-model="newAlbumData.name"
-                                class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-white"
+                                class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-base-content"
                                 placeholder="e.g. Vacation Slideshow"
                             />
                         </div>
@@ -253,7 +254,7 @@
                             <input
                                 type="text"
                                 x-model="newAlbumData.immich_url"
-                                class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-white"
+                                class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-base-content"
                                 placeholder="https://photos.example.com/share/..."
                             />
                         </div>
@@ -290,7 +291,7 @@
                                         <input
                                             type="text"
                                             x-model="item.url"
-                                            class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-white"
+                                            class="border-[color:var(--color-primary)]/10 input input-xs input-bordered w-full bg-transparent text-base-content"
                                             placeholder="https://www.amazon.ca/photos/share/... or https://photos.google.com/share/..."
                                         />
                                         <button
@@ -620,10 +621,45 @@
             editingAlbumData: { name: '', immich_url: '', amazon_url: '', fallback_urls: [] },
 
             init() {
-                this.pb = new PocketBase(window.location.origin);
-                this.pb.authStore.loadFromCookie(document.cookie);
                 this.updateCacheSize();
                 this.cacheTtlDays = Math.round((this.settings.cache_ttl || 604800) / 86400);
+            },
+
+            async postAction(action, data = {}) {
+                const params = new URLSearchParams();
+                params.append('action', action);
+                for (const key in data) {
+                    if (data[key] !== undefined && data[key] !== null) {
+                        params.append(key, typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key]);
+                    }
+                }
+                const res = await fetch('/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params.toString()
+                });
+
+                if (res.redirected && res.url && res.url.includes('/login')) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    if (res.url && res.url.includes('/login')) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    throw new Error('Session expired or invalid server response format.');
+                }
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    let errJson;
+                    try { errJson = JSON.parse(errText); } catch(_) {}
+                    throw new Error((errJson && errJson.error) || errText || 'Server error');
+                }
+                return res.json();
             },
 
             async updateCacheSize() {
@@ -734,8 +770,7 @@
                 const firstAmz = normalizedFallbacks.find(u => u.includes('amazon') || u.includes('/photos/share/')) || '';
 
                 try {
-                    const record = await this.pb.collection('flame_albums').create({
-                        user: this.userId,
+                    const result = await this.postAction('create_album', {
                         name: this.newAlbumData.name.trim(),
                         immich_url: normalizedImmich,
                         amazon_url: firstAmz || (normalizedFallbacks[0] || ''),
@@ -744,17 +779,16 @@
                     });
                     
                     this.albums.push({
-                        id: record.id,
-                        name: record.name,
-                        immich_url: record.immich_url,
-                        amazon_url: record.amazon_url,
-                        fallback_urls: record.fallback_urls || [],
-                        order: record.order
+                        id: result.id,
+                        name: this.newAlbumData.name.trim(),
+                        immich_url: normalizedImmich,
+                        amazon_url: firstAmz || (normalizedFallbacks[0] || ''),
+                        fallback_urls: normalizedFallbacks,
+                        order: this.albums.length
                     });
 
-                    // Set active if this is the first album
                     if (this.albums.length === 1 || !this.settings.active_album) {
-                        await this.setActiveAlbum(record.id);
+                        await this.setActiveAlbum(result.id);
                     }
 
                     this.showToast('Album created successfully!', 'success');
@@ -810,7 +844,8 @@
                 const firstAmz = normalizedFallbacks.find(u => u.includes('amazon') || u.includes('/photos/share/')) || '';
 
                 try {
-                    const record = await this.pb.collection('flame_albums').update(this.editingAlbumId, {
+                    await this.postAction('update_album', {
+                        album_id: this.editingAlbumId,
                         name: this.editingAlbumData.name.trim(),
                         immich_url: normalizedImmich,
                         amazon_url: firstAmz || (normalizedFallbacks[0] || ''),
@@ -820,12 +855,12 @@
                     const index = this.albums.findIndex(a => a.id === this.editingAlbumId);
                     if (index !== -1) {
                         this.albums[index] = {
-                            id: record.id,
-                            name: record.name,
-                            immich_url: record.immich_url,
-                            amazon_url: record.amazon_url,
-                            fallback_urls: record.fallback_urls || [],
-                            order: record.order
+                            id: this.editingAlbumId,
+                            name: this.editingAlbumData.name.trim(),
+                            immich_url: normalizedImmich,
+                            amazon_url: firstAmz || (normalizedFallbacks[0] || ''),
+                            fallback_urls: normalizedFallbacks,
+                            order: this.albums[index].order
                         };
                     }
 
@@ -839,18 +874,16 @@
             async deleteAlbum(albumId) {
                 if (!confirm('Are you sure you want to delete this album?')) return;
                 try {
-                    await this.pb.collection('flame_albums').delete(albumId);
+                    await this.postAction('delete_album', { album_id: albumId });
+                    
+                    const wasActive = this.settings.active_album === albumId;
                     this.albums = this.albums.filter(a => a.id !== albumId);
 
-                    // If deleted album was active, select another
-                    if (this.settings.active_album === albumId) {
+                    if (wasActive) {
                         if (this.albums.length > 0) {
-                            await this.setActiveAlbum(this.albums[0].id);
+                            this.settings.active_album = this.albums[0].id;
                         } else {
                             this.settings.active_album = '';
-                            await this.pb.collection('flame_settings').update(this.settings.id, {
-                                active_album: null
-                            });
                         }
                     }
                     this.showToast('Album deleted successfully!', 'success');
@@ -887,19 +920,18 @@
                 const albumA = this.albums[i];
                 const albumB = this.albums[j];
 
-                // Swap in array
                 this.albums[i] = albumB;
                 this.albums[j] = albumA;
 
-                // Refresh array to trigger Alpine render
                 this.albums = [...this.albums];
 
                 try {
-                    // Update order in database
-                    await Promise.all([
-                        this.pb.collection('flame_albums').update(albumA.id, { order: j }),
-                        this.pb.collection('flame_albums').update(albumB.id, { order: i })
-                    ]);
+                    await this.postAction('swap_albums', {
+                        albumA_id: albumA.id,
+                        albumA_order: j,
+                        albumB_id: albumB.id,
+                        albumB_order: i
+                    });
                     
                     albumA.order = j;
                     albumB.order = i;
@@ -912,9 +944,7 @@
 
             async setActiveAlbum(albumId) {
                 try {
-                    await this.pb.collection('flame_settings').update(this.settings.id, {
-                        active_album: albumId
-                    });
+                    await this.postAction('set_active_album', { album_id: albumId });
                     this.settings.active_album = albumId;
                     this.showToast('Active album updated!', 'success');
                 } catch (e) {
@@ -932,7 +962,8 @@
 
             async performSave(redirect) {
                 try {
-                    await this.pb.collection('flame_settings').update(this.settings.id, {
+                    await this.postAction('save_settings', {
+                        settings_id: this.settings.id,
                         color_primary: this.settings.color_primary,
                         color_accent: this.settings.color_accent,
                         color_background: this.settings.color_background,
@@ -944,8 +975,7 @@
                         video_repeat_threshold: parseInt(this.settings.video_repeat_threshold, 10) || 5,
                         video_repeat_count: parseInt(this.settings.video_repeat_count, 10) || 3,
                         cache_ttl: this.cacheTtlDays * 86400,
-                        active_album: this.settings.active_album || null,
-                        user: this.userId
+                        active_album: this.settings.active_album || null
                     });
                     this.showToast('Settings updated successfully!', 'success', 1200);
                     if (redirect) {
