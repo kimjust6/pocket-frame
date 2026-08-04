@@ -1,7 +1,7 @@
 {
     "description": "DO NOT DELETE THIS FILE. This file is used to keep track of which files have been synced in the most recent deployment. If you delete this file a resync will need to be done (which can take a while) - read more: https://github.com/SamKirkland/FTP-Deploy-Action",
     "version": "1.0.0",
-    "generatedTime": 1784429430273,
+    "generatedTime": 1785866388468,
     "data": [
         {
             "type": "file",
@@ -64,26 +64,26 @@
         {
             "type": "file",
             "name": "pb_migrations/1784387700_add_fallback_urls_albums.js",
-            "size": 1176,
-            "hash": "6270c84b92d7c9c45a124865551db4517c8297712d616bac273b133267627cf6"
+            "size": 1216,
+            "hash": "d6a13352f839121490958d0bf42eb74d79298feb0464259577b1bc0f9a9be69a"
         },
         {
             "type": "file",
             "name": "pb_migrations/1784387661_updated_users.js",
-            "size": 468,
-            "hash": "6e2c420fe47eee40041f12ff5d5268c4b189ed244e42d066a137cf9bc17d90e5"
+            "size": 488,
+            "hash": "1db22f28004a896b65012cf873be82dea20b421f9430a89789b3515f789de250"
         },
         {
             "type": "file",
             "name": "pb_migrations/1784387606_updated_users.js",
-            "size": 468,
-            "hash": "a394e4f59cb73934fca2d2d21735789f9d5bf9ea591d5039221556dfc6d3918c"
+            "size": 488,
+            "hash": "2a442d535196a8088e5953a43668a1b6e6547b8185732cf99e8a97ad372c73de"
         },
         {
             "type": "file",
             "name": "pb_migrations/1783041000_create_flame_albums.js",
-            "size": 3805,
-            "hash": "ea78bdd2a8d967893bffff5de55df90e92169b9e3253da40b8ea897a47f1f2f6"
+            "size": 3939,
+            "hash": "9cf5da7edab62364845b74b2e162128a497320b0a85fd585b678b9bae52644bd"
         },
         {
             "type": "file",
@@ -848,8 +848,8 @@
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/settings/index.ejs",
-            "size": 52686,
-            "hash": "0bfb71190a8811ac4e85ccaa67ba543527bbe8d0d8b4c2f42c873429c9048859"
+            "size": 52764,
+            "hash": "2426e5c58408b90197ff3771f444d8b49af2acc106f928ddbfd3aeb49816b727"
         },
         {
             "type": "file",
@@ -870,8 +870,8 @@
         {
             "type": "file",
             "name": "pb_hooks/pages/(navbarlayout)/profile/+load.js",
-            "size": 1218,
-            "hash": "be2260aef8da42c37a41efddecbb0ef5ff7a389e5a8d1ed261404bd5ec9b9094"
+            "size": 1258,
+            "hash": "45c58db1f0fd6c6c53135ed54e4ff70a5fb9896f1eb0285361e43a9b574daad4"
         },
         {
             "type": "file",
@@ -916,8 +916,8 @@
         {
             "type": "file",
             "name": "pb_hooks/lib/pocketbase-types.ts",
-            "size": 6550,
-            "hash": "45bec7aa0c652c577703131be951fd4fa55ee30011f16d4b09baa50c5febb4b7"
+            "size": 6794,
+            "hash": "f02d7e551969b83bda8eb8aeb96abbb4d852ee3d8b24687a6deba6a8661f9dcc"
         },
         {
             "type": "file",

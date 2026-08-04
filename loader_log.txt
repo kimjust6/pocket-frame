@@ -1,0 +1,40 @@
+[2026-08-04T17:56:33.979Z] Homepage loader started.
+[2026-08-04T17:56:33.979Z] Authenticated user found: h609qzoavvnh0vq
+[2026-08-04T17:56:33.981Z] Loaded settings from DB. search_engine: https://photos.jkim.win/share/BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM
+[2026-08-04T17:56:33.981Z] Parsing share URL: https://photos.jkim.win/share/BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM
+[2026-08-04T17:56:33.981Z] Parsed Share Info successfully: {"origin":"https://photos.jkim.win","shareKey":"BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM","atToken":""}
+[2026-08-04T17:56:33.981Z] fetchSharePayload trying url: https://photos.jkim.win/api/shared-links/me?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM
+[2026-08-04T17:56:34.488Z] fetchSharePayload url: https://photos.jkim.win/api/shared-links/me?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM returned status: 200
+[2026-08-04T17:56:34.488Z] Payload fetched. Keys: userId, type, createdAt, expiresAt, assets, album, showMetadata, id, description, password, key, allowUpload, allowDownload, slug
+[2026-08-04T17:56:34.488Z] Direct asset IDs found: 0
+[2026-08-04T17:56:34.488Z] Fetching buckets from url: https://photos.jkim.win/api/timeline/buckets?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM&albumId=9ecbf379-be90-4977-83dd-03feec4edd00
+[2026-08-04T17:56:34.529Z] Buckets response status: 200
+[2026-08-04T17:56:34.529Z] Found 9 buckets.
+[2026-08-04T17:56:34.529Z] Fetching bucket: 2026-08-01 from https://photos.jkim.win/api/timeline/bucket?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM&albumId=9ecbf379-be90-4977-83dd-03feec4edd00&timeBucket=2026-08-01
+[2026-08-04T17:56:34.569Z] Bucket 2026-08-01 status: 200
+[2026-08-04T17:56:34.569Z] Bucket 2026-08-01 added 107 assets. Total so far: 107
+[2026-08-04T17:56:34.569Z] Fetching bucket: 2026-07-01 from https://photos.jkim.win/api/timeline/bucket?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM&albumId=9ecbf379-be90-4977-83dd-03feec4edd00&timeBucket=2026-07-01
+[2026-08-04T17:56:34.723Z] Bucket 2026-07-01 status: 200
+[2026-08-04T17:56:34.724Z] Bucket 2026-07-01 added 624 assets. Total so far: 731
+[2026-08-04T17:56:34.724Z] Fetching bucket: 2026-06-01 from https://photos.jkim.win/api/timeline/bucket?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM&albumId=9ecbf379-be90-4977-83dd-03feec4edd00&timeBucket=2026-06-01
+[2026-08-04T17:56:34.785Z] Bucket 2026-06-01 status: 200
+[2026-08-04T17:56:34.785Z] Bucket 2026-06-01 added 330 assets. Total so far: 1061
+[2026-08-04T17:56:34.785Z] Fetching bucket: 2026-05-01 from https://photos.jkim.win/api/timeline/bucket?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM&albumId=9ecbf379-be90-4977-83dd-03feec4edd00&timeBucket=2026-05-01
+[2026-08-04T17:56:34.832Z] Bucket 2026-05-01 status: 200
+[2026-08-04T17:56:34.832Z] Bucket 2026-05-01 added 250 assets. Total so far: 1311
+[2026-08-04T17:56:34.832Z] Fetching bucket: 2026-04-01 from https://photos.jkim.win/api/timeline/bucket?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM&albumId=9ecbf379-be90-4977-83dd-03feec4edd00&timeBucket=2026-04-01
+[2026-08-04T17:56:34.857Z] Bucket 2026-04-01 status: 200
+[2026-08-04T17:56:34.858Z] Bucket 2026-04-01 added 346 assets. Total so far: 1657
+[2026-08-04T17:56:34.858Z] Fetching bucket: 2026-03-01 from https://photos.jkim.win/api/timeline/bucket?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM&albumId=9ecbf379-be90-4977-83dd-03feec4edd00&timeBucket=2026-03-01
+[2026-08-04T17:56:34.896Z] Bucket 2026-03-01 status: 200
+[2026-08-04T17:56:34.896Z] Bucket 2026-03-01 added 172 assets. Total so far: 1829
+[2026-08-04T17:56:34.896Z] Fetching bucket: 2026-02-01 from https://photos.jkim.win/api/timeline/bucket?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM&albumId=9ecbf379-be90-4977-83dd-03feec4edd00&timeBucket=2026-02-01
+[2026-08-04T17:56:34.935Z] Bucket 2026-02-01 status: 200
+[2026-08-04T17:56:34.935Z] Bucket 2026-02-01 added 32 assets. Total so far: 1861
+[2026-08-04T17:56:34.935Z] Fetching bucket: 2026-01-01 from https://photos.jkim.win/api/timeline/bucket?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM&albumId=9ecbf379-be90-4977-83dd-03feec4edd00&timeBucket=2026-01-01
+[2026-08-04T17:56:34.968Z] Bucket 2026-01-01 status: 200
+[2026-08-04T17:56:34.968Z] Bucket 2026-01-01 added 237 assets. Total so far: 2098
+[2026-08-04T17:56:34.968Z] Fetching bucket: 2025-12-01 from https://photos.jkim.win/api/timeline/bucket?key=BmMsI-ZOUEqRvUWOdMjNgkw3QnGIZUyVGOKWsY1OLZ7pgkaSHeMy-nIvRbdf7vF_INM&albumId=9ecbf379-be90-4977-83dd-03feec4edd00&timeBucket=2025-12-01
+[2026-08-04T17:56:34.994Z] Bucket 2025-12-01 status: 200
+[2026-08-04T17:56:34.994Z] Bucket 2025-12-01 added 11 assets. Total so far: 2109
+[2026-08-04T17:56:34.994Z] Successfully loaded 2109 items from Immich. Caching result.

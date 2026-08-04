@@ -48,7 +48,7 @@
             <div class="space-y-3">
                 <template x-for="(album, idx) in albums" :key="album.id">
                     <div
-                        class="border-[color:var(--color-primary)]/10 bg-[color:var(--color-primary)]/2 rounded-xl border p-4 transition-all relative hover:border-[color:var(--color-primary)]/20"
+                        class="border-[color:var(--color-primary)]/10 bg-[color:var(--color-primary)]/2 rounded-xl border p-4 transition-all relative hover:border-[color:var(--color-primary)]/20 overflow-hidden"
                         :class="settings.active_album === album.id ? 'border-[color:var(--color-accent)]/30 bg-[color:var(--color-accent)]/2' : ''"
                     >
                         <!-- VIEW MODE -->
@@ -85,17 +85,17 @@
                                         <span class="badge badge-accent badge-sm font-bold px-2 text-[10px] text-[color:var(--color-background)]">Active</span>
                                     </template>
                                 </div>
-                                <div class="space-y-0.5 text-xs opacity-75">
+                                <div class="space-y-0.5 text-xs opacity-75 w-full overflow-hidden">
                                     <div class="flex items-center gap-1.5 overflow-hidden">
                                         <span class="font-semibold uppercase text-[9px] opacity-50 flex-shrink-0 w-24">Immich Share:</span>
-                                        <span class="truncate" x-text="album.immich_url || 'None'"></span>
+                                        <span class="truncate min-w-0" x-text="album.immich_url || 'None'"></span>
                                     </div>
                                     <template x-if="album.fallback_urls && album.fallback_urls.length > 0">
-                                        <div class="space-y-0.5">
+                                        <div class="space-y-0.5 min-w-0 w-full">
                                             <template x-for="(url, uIdx) in album.fallback_urls" :key="uIdx">
                                                 <div class="flex items-center gap-1.5 overflow-hidden">
                                                     <span class="font-semibold uppercase text-[9px] opacity-50 flex-shrink-0 w-24" x-text="url.includes('amazon') || url.includes('/photos/share/') ? 'Amazon Fallback:' : (url.includes('google') || url.includes('goo.gl') ? 'Google Fallback:' : 'Fallback:')"></span>
-                                                    <span class="truncate text-[11px]" x-text="url"></span>
+                                                    <span class="truncate min-w-0 text-[11px]" x-text="url"></span>
                                                 </div>
                                             </template>
                                         </div>
@@ -103,7 +103,7 @@
                                     <template x-if="!album.fallback_urls || album.fallback_urls.length === 0">
                                         <div class="flex items-center gap-1.5 overflow-hidden">
                                             <span class="font-semibold uppercase text-[9px] opacity-50 flex-shrink-0 w-24">Fallbacks:</span>
-                                            <span class="truncate opacity-50">None</span>
+                                            <span class="truncate min-w-0 opacity-50">None</span>
                                         </div>
                                     </template>
                                 </div>
