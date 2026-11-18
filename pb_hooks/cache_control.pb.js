@@ -4,7 +4,7 @@ routerUse((e) => {
         if (e.request && e.request.url) {
             const path = e.request.url.Path || e.request.url.path || "";
             // Cache static assets like JS and CSS files for 1 year
-            if (path.startsWith("/js/") || path === "/app.css") {
+            if (path.startsWith("/assets/") || path.startsWith("/js/") || path === "/app.css") {
                 e.response.header().set("Cache-Control", "public, max-age=31536000, immutable");
             } else if (path === "/favicon.ico") {
                 // Cache favicon for 1 week
