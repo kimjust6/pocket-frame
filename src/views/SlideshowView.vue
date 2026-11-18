@@ -8,49 +8,39 @@
         @touchmove="onTouchMove($event)"
         @touchend="onTouchEnd($event)"
     >
-        <!-- Slideshow Track Wrapper -->
+        <!-- Active Slide (Instant Cut, No Slide Animation) -->
         <div
-            v-if="images.length > 0"
-            class="absolute inset-0 flex"
-            :class="(isSwiping || !shouldAnimate) ? '' : 'transition-transform duration-500 ease-out'"
-            :style="`transform: translateX(calc(-${currentIndex * 100}% + ${swipeOffset}px))`"
+            v-if="currentImage"
+            class="absolute inset-0 w-full h-full overflow-hidden bg-black flex items-center justify-center"
         >
-            <div
-                v-for="(img, idx) in images"
-                :key="idx"
-                class="w-screen h-screen flex-shrink-0 relative overflow-hidden bg-black flex items-center justify-center"
-            >
-                <div v-if="isNear(idx)" class="absolute inset-0 w-full h-full flex items-center justify-center">
-                    <!-- Foreground Image -->
-                    <img
-                        v-if="img.type !== 'VIDEO'"
-                        :src="loadedIndices.has(idx) ? img.url : ''"
-                        :id="`image-${idx}`"
-                        :fetchpriority="idx === 0 ? 'high' : 'auto'"
-                        alt="Pocket Frame slideshow item"
-                        class="relative h-full w-full object-contain z-10"
-                        referrerpolicy="no-referrer"
-                    />
-                    <!-- Foreground Video -->
-                    <video
-                        v-else
-                        :src="idx === currentIndex ? img.url : ''"
-                        :id="`video-${idx}`"
-                        ref="videoRef"
-                        preload="auto"
-                        muted
-                        playsinline
-                        :controls="showControls && userInteracted"
-                        @mousemove="keepControlsAlive()"
-                        @click="keepControlsAlive()"
-                        @touchstart="keepControlsAlive()"
-                        @canplay="onVideoCanPlay($event, idx)"
-                        @ended="onVideoEnded($event)"
-                        class="relative h-full w-full object-contain z-10 pointer-events-auto"
-                        referrerpolicy="no-referrer"
-                    ></video>
-                </div>
-            </div>
+            <!-- Image Slide -->
+            <img
+                v-if="currentImage.type !== 'VIDEO'"
+                :key="currentImage.url"
+                :src="currentImage.url"
+                :alt="`Slide ${currentIndex + 1}`"
+                fetchpriority="high"
+                class="relative h-full w-full object-contain z-10"
+                referrerpolicy="no-referrer"
+            />
+            <!-- Video Slide -->
+            <video
+                v-else
+                ref="currentVideoRef"
+                :key="currentImage.url"
+                :src="currentImage.url"
+                preload="auto"
+                muted
+                playsinline
+                :controls="showControls && userInteracted"
+                @mousemove="keepControlsAlive()"
+                @click="keepControlsAlive()"
+                @touchstart="keepControlsAlive()"
+                @canplay="onVideoCanPlay"
+                @ended="onVideoEnded"
+                class="relative h-full w-full object-contain z-10 pointer-events-auto"
+                referrerpolicy="no-referrer"
+            ></video>
         </div>
 
         <!-- Empty State -->
@@ -199,7 +189,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { pb } from '@/lib/pocketbase';
 import { useSettingsStore } from '@/stores/settings';
 import { useToastStore } from '@/stores/toast';
@@ -219,13 +209,13 @@ const userInteracted = ref(false);
 const isFullscreen = ref(false);
 const autoplayFullscreen = ref(false);
 
-const isSwiping = ref(false);
+// Minimal single-slot state (Instant cut, zero animation)
+const currentVideoRef = ref(null);
 const swipeOffset = ref(0);
-const shouldAnimate = ref(false);
+let isDragging = false;
 let touchStartX = 0;
 let touchStartY = 0;
 
-const loadedIndices = reactive(new Set());
 let slideTimerId = null;
 let controlsTimeout = null;
 let watchdogIntervalId = null;
@@ -235,25 +225,20 @@ let videoRepeatThreshold = 5;
 let videoRepeatCount = 3;
 let currentVideoPlayCount = 0;
 
-function isNear(idx) {
-    const len = images.value.length;
-    if (len <= 5) return true;
-    const diff = Math.min(
-        Math.abs(idx - currentIndex.value),
-        len - Math.abs(idx - currentIndex.value)
-    );
-    return diff <= 2;
-}
+// Currently visible active image/video
+const currentImage = computed(() => {
+    if (images.value.length === 0) return null;
+    return images.value[currentIndex.value] || null;
+});
 
-function ensureNearLoaded(index) {
-    const len = images.value.length;
-    if (len === 0) return;
-    for (let offset = -2; offset <= 2; offset++) {
-        let i = index + offset;
-        if (i < 0) i = len + i;
-        if (i >= len) i = i - len;
-        if (i >= 0 && i < len) {
-            loadedIndices.add(i);
+// Preload next image in memory for instant cuts
+function preloadNext() {
+    if (images.value.length > 1) {
+        const nextIdx = (currentIndex.value + 1) % images.value.length;
+        const nextItem = images.value[nextIdx];
+        if (nextItem && nextItem.type !== 'VIDEO' && nextItem.url) {
+            const img = new Image();
+            img.src = nextItem.url;
         }
     }
 }
@@ -271,26 +256,36 @@ function keepControlsAlive(autoHide = true) {
 
 function nextImage() {
     if (images.value.length <= 1) return;
-    shouldAnimate.value = true;
-    currentVideoPlayCount = 0;
+    cleanupCurrentVideo();
     currentIndex.value = (currentIndex.value + 1) % images.value.length;
-    ensureNearLoaded(currentIndex.value);
+    currentVideoPlayCount = 0;
     resetSlideTimer();
+    preloadNext();
 }
 
 function prevImage() {
     if (images.value.length <= 1) return;
-    shouldAnimate.value = true;
-    currentVideoPlayCount = 0;
+    cleanupCurrentVideo();
     currentIndex.value = (currentIndex.value - 1 + images.value.length) % images.value.length;
-    ensureNearLoaded(currentIndex.value);
+    currentVideoPlayCount = 0;
     resetSlideTimer();
+    preloadNext();
+}
+
+function cleanupCurrentVideo() {
+    const v = currentVideoRef.value;
+    if (v) {
+        try {
+            v.pause();
+            v.removeAttribute('src');
+            v.load(); // Releases hardware video decoder buffer immediately
+        } catch (e) {}
+    }
 }
 
 function resetSlideTimer() {
     if (slideTimerId) clearTimeout(slideTimerId);
     const current = images.value[currentIndex.value];
-    // If current is video, timer will be managed on video ended or watchdog
     if (current && current.type === 'VIDEO') return;
 
     slideTimerId = setTimeout(() => {
@@ -298,16 +293,14 @@ function resetSlideTimer() {
     }, slideIntervalMs);
 }
 
-function onVideoCanPlay(e, idx) {
-    if (idx === currentIndex.value) {
-        const v = e.target;
-        v.muted = true;
-        setTimeout(() => {
-            v.play()
-                .then(() => { v.muted = false; })
-                .catch(() => { v.muted = false; });
-        }, 150);
-    }
+function onVideoCanPlay(e) {
+    const v = e.target;
+    v.muted = true;
+    setTimeout(() => {
+        v.play()
+            .then(() => { v.muted = false; })
+            .catch(() => { v.muted = false; });
+    }, 150);
 }
 
 function onVideoEnded(e) {
@@ -327,9 +320,8 @@ function startVideoWatchdog() {
     watchdogIntervalId = setInterval(() => {
         const current = images.value[currentIndex.value];
         if (current && current.type === 'VIDEO') {
-            const v = document.getElementById(`video-${currentIndex.value}`);
+            const v = currentVideoRef.value;
             if (v && v.duration) {
-                // If past video duration + 3s buffer, advance
                 if (v.currentTime >= v.duration || v.ended) {
                     nextImage();
                 }
@@ -363,16 +355,15 @@ function onKeyDown(e) {
 }
 
 function onTouchStart(e) {
-    if (e.touches && e.touches[0]) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        isSwiping.value = true;
-        swipeOffset.value = 0;
-    }
+    if (!e.touches || !e.touches[0]) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    isDragging = true;
+    swipeOffset.value = 0;
 }
 
 function onTouchMove(e) {
-    if (!isSwiping.value || !e.touches || !e.touches[0]) return;
+    if (!isDragging || !e.touches || !e.touches[0]) return;
     const deltaX = e.touches[0].clientX - touchStartX;
     const deltaY = e.touches[0].clientY - touchStartY;
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
@@ -380,10 +371,11 @@ function onTouchMove(e) {
     }
 }
 
-function onTouchEnd(e) {
-    if (!isSwiping.value) return;
-    isSwiping.value = false;
-    const threshold = 60;
+function onTouchEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    const threshold = 50;
+
     if (swipeOffset.value < -threshold) {
         nextImage();
     } else if (swipeOffset.value > threshold) {
@@ -404,13 +396,18 @@ async function loadSlideshowData() {
             autoplayFullscreen.value = !!res.settings.autoplay_fullscreen;
         }
 
-        images.value = res.images || [];
+        // Keep only minimal necessary fields per image to minimize JavaScript heap memory
+        images.value = (res.images || []).map(img => ({
+            url: img.url,
+            type: img.type || 'IMAGE',
+            duration: img.duration || 0,
+        }));
+
         statusText.value = res.statusText || 'Slideshow ready';
         albumName.value = res.albumName || '';
-
         currentIndex.value = 0;
-        ensureNearLoaded(0);
         resetSlideTimer();
+        preloadNext();
     } catch (err) {
         statusText.value = 'Failed to load slideshow data.';
         toastStore.error(err.message || 'Error loading slideshow.');
@@ -430,6 +427,7 @@ onMounted(() => {
 onUnmounted(() => {
     document.removeEventListener('fullscreenchange', onFullscreenChange);
     window.removeEventListener('keydown', onKeyDown);
+    cleanupCurrentVideo();
     if (slideTimerId) clearTimeout(slideTimerId);
     if (controlsTimeout) clearTimeout(controlsTimeout);
     if (watchdogIntervalId) clearInterval(watchdogIntervalId);

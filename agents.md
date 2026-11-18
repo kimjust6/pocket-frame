@@ -102,6 +102,8 @@ pocket-frame/
   npm run push
   ```
   Deploys the application (`pb_hooks`, `pb_migrations`, `pb_public`) using Phio. It automatically snapshots any schema changes into `pb_migrations/` via `pocketbase migrate collections` and runs `npm run build` prior to uploading.
+  > [!NOTE]
+  > A patch for `phio` (`patches/phio+0.4.0.patch`) is managed by `patch-package` to fix a known SFTP bug where non-recursive `rmdir` failed on non-empty directories (`code: 4, custom: true, Error: rmdir: Failure`). The patch ensures `rmdir(folderPath, true)` is called recursively.
 
 ---
 
@@ -118,7 +120,10 @@ pocket-frame/
 ### 5.2 Frontend Components & Stores
 - **Authentication**: Checked via `pb.authStore.isValid`. All private views (`/`, `/settings`, `/profile`, `/profile/edit`) require authentication; guests are redirected to `/login`.
 - **CSS Branding Variables**: Handled in `src/stores/settings.js`. The user's chosen hex colors for primary, accent, and background are applied as `--color-primary`, `--color-accent`, and `--color-background` directly onto `document.body.style`.
-- **Slideshow View Performance**:
-  - Virtualization (`isNear(idx)`) ensures only the current slide and neighboring slides are loaded into memory to prevent crashing when albums contain thousands of photos.
+- **Memory & Performance Optimizations (Constant O(1) Memory)**:
+  - **Instant Slide Cut (Single Active Slide)**: In `SlideshowView.vue`, photos switch with an instant cut (zero sliding animation). Only the single active slide is rendered in the DOM, keeping GPU compositing overhead and memory usage at an absolute minimum while preloading the next image in memory for seamless, flash-free transitions.
+  - **Video Decoder Cleanup**: Inactive `<video>` elements pause, remove `src`, and call `load()` on slide transition to release hardware-accelerated video decoder buffers from VRAM.
+  - **Lean Payloads**: Slideshow API responses and client image arrays retain only `{ url, type, duration }`, stripping duplicate thumbnail and blur URLs.
+  - **Reduced Prewarmed Hooks Pool**: PocketBase runs with `--hooksPool=2` instead of the default 15, cutting resident Goja JavaScript engine RAM by >80%.
   - Controls auto-hide after 3.5 seconds of user inactivity.
   - Short videos loop according to `video_repeat_threshold` and `video_repeat_count` before auto-advancing. A watchdog timer prevents video stalls.

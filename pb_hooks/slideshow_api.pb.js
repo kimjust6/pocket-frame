@@ -419,33 +419,28 @@ routerAdd("GET", "/api/custom/slideshow", (e) => {
             const atQuery = shareInfo.atToken ? `&at=${encodeURIComponent(shareInfo.atToken)}` : '';
             images = images.map(img => {
                 if (img.id) {
-                    const blurUrl = `${origin}/api/assets/${img.id}/thumbnail?key=${shareKey}&size=thumbnail${atQuery}`;
-                    const thumbnailUrl = `${origin}/api/assets/${img.id}/thumbnail?key=${shareKey}&size=preview${atQuery}`;
                     const url = img.type === 'VIDEO'
                         ? `${origin}/api/assets/${img.id}/video/playback?key=${shareKey}${atQuery}`
-                        : thumbnailUrl;
+                        : `${origin}/api/assets/${img.id}/thumbnail?key=${shareKey}&size=preview${atQuery}`;
                     return {
                         url,
-                        thumbnailUrl,
-                        blurUrl,
                         type: img.type,
                         duration: img.duration || 0
                     };
                 }
-                return img;
+                return {
+                    url: img.url,
+                    type: img.type || 'IMAGE',
+                    duration: img.duration || 0
+                };
             });
         } else {
             images = images.map(img => {
-                if (img.url) {
-                    return {
-                        ...img,
-                        thumbnailUrl: img.thumbnailUrl || img.url,
-                        blurUrl: img.blurUrl || img.url,
-                        type: img.type || 'IMAGE',
-                        duration: img.duration || 0
-                    };
-                }
-                return img;
+                return {
+                    url: img.url,
+                    type: img.type || 'IMAGE',
+                    duration: img.duration || 0
+                };
             });
         }
     }

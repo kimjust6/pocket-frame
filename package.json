@@ -3,10 +3,10 @@
   "private": true,
   "version": "1.0",
   "scripts": {
-    "dev": "concurrently \"vite\" \"pocketbase serve --dir=pb_data --dev\"",
+    "dev": "concurrently \"vite\" \"pocketbase serve --dir=pb_data --dev --hooksPool=2\"",
     "build": "vite build",
     "preview": "vite preview",
-    "serve": "pocketbase serve --dir=pb_data --dev",
+    "serve": "pocketbase serve --dir=pb_data --dev --hooksPool=2",
     "wsl": "wsl bash -c \"set -a && source .env && set +a && npm run dev\"",
     "push": "node scripts/push.mjs",
     "login": "phio login",

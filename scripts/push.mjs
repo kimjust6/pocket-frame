@@ -117,7 +117,7 @@ let options;
 if (isWindows) {
     if (useWsl) {
         const targetArgs = deployArgs.map(shellQuoteSingle).join(" ");
-        const deployCmd = `cd ${shellQuoteSingle(wslCwd)} && npx -y -p node@24 -p phio phio deploy ${targetArgs} 2>&1`;
+        const deployCmd = `cd ${shellQuoteSingle(wslCwd)} && npx -y -p node@24 phio deploy ${targetArgs} 2>&1`;
         command = "wsl";
         args = ["bash", "-lc", deployCmd];
         options = {
@@ -125,7 +125,7 @@ if (isWindows) {
         };
     } else {
         const targetArgs = deployArgs.join(" ");
-        command = `npx -y -p node@24 -p phio phio deploy ${targetArgs}`;
+        command = `npx -y -p node@24 phio deploy ${targetArgs}`;
         args = [];
         options = {
             cwd: workspaceRoot,
@@ -135,7 +135,7 @@ if (isWindows) {
     }
 } else {
     command = "npx";
-    args = ["-y", "-p", "node@24", "-p", "phio", "phio", "deploy", ...deployArgs];
+    args = ["-y", "-p", "node@24", "phio", "deploy", ...deployArgs];
     options = {
         cwd: workspaceRoot,
         stdio: ["inherit", "pipe", "pipe"],

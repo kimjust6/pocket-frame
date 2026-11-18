@@ -1,0 +1,25 @@
+diff --git a/node_modules/phio/vendor/ftp-deploy/sftpSyncProvider.ts b/node_modules/phio/vendor/ftp-deploy/sftpSyncProvider.ts
+--- a/node_modules/phio/vendor/ftp-deploy/sftpSyncProvider.ts
++++ b/node_modules/phio/vendor/ftp-deploy/sftpSyncProvider.ts
+@@ -123,7 +123,20 @@ export class SFTPSyncProvider implements ISyncProvider {
+         this.logger.all(`removing folder "${absoluteFolderPath}"`);
+ 
+         if (this.dryRun === false) {
+-            await retryRequest(this.logger, async () => await this.client.rmdir(folderPath));
++            try {
++                await retryRequest(this.logger, async () => await this.client.rmdir(folderPath, true));
++            } catch (e: any) {
++                const message = `${e?.message ?? e}`.toLowerCase();
++                if (
++                    message.includes("no such file") ||
++                    message.includes("no such directory") ||
++                    message.includes("not found")
++                ) {
++                    this.logger.standard("Folder not found or already removed - skipping...");
++                } else {
++                    throw e;
++                }
++            }
+         }
+ 
+         this.logger.verbose(`  completed`);
